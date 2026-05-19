@@ -91,13 +91,33 @@ export default function App() {
       </Panel>
 
       <footer className="mt-7 flex justify-center items-center gap-3 text-phosphor-dim text-[11px]">
-        <Button onClick={() => { if (window.confirm('Reset?')) reset(); }}>
-          Reset
+        <Button onClick={() => { if (window.confirm('Wipe the run and start over?')) reset(); }}>
+          Reset run
         </Button>
-        <Button variant={devMode ? 'active' : 'normal'} onClick={toggleDevMode}>
-          Devmode: {devMode ? '10x' : '1x'}
-        </Button>
+        {import.meta.env.VITE_SHOW_DEVMODE === 'true' && (
+          <Button variant={devMode ? 'active' : 'normal'} onClick={toggleDevMode}>
+            Devmode: {devMode ? '10x' : '1x'}
+          </Button>
+        )}
+        <SaveStatus />
       </footer>
     </main>
   );
+}
+
+function SaveStatus() {
+  const status = useGameStore((s) => s.ui.lastSaveStatus);
+  const error = useGameStore((s) => s.ui.lastSaveError);
+
+  if (status === 'failed') {
+    return (
+      <span className="text-error" title={error || 'Save failed'}>
+        save failed
+      </span>
+    );
+  }
+  if (status === 'saved') {
+    return <span className="text-phosphor-dim">saved</span>;
+  }
+  return <span className="text-phosphor-faint">·</span>;
 }

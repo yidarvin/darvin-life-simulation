@@ -1,5 +1,32 @@
 import { create } from 'zustand';
 import { initialState } from './initialState';
+import { save, clear } from './persistence';
+
+let saveDebounceTimer = null;
+const SAVE_DEBOUNCE_MS = 500;
+
+function debouncedSave(getState, setState) {
+  clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = setTimeout(() => {
+    const result = save(getState());
+    setState((s) => ({
+      ui: {
+        ...s.ui,
+        lastSaveStatus: result.status,
+        lastSaveError: result.error,
+      },
+    }));
+  }, SAVE_DEBOUNCE_MS);
+}
+
+/**
+ * Flush any pending debounced save synchronously. Call on beforeunload.
+ */
+export function flushSave() {
+  clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = null;
+  save(useGameStore.getState());
+}
 
 /**
  * Game store. All game state lives here.
@@ -26,6 +53,7 @@ export const useGameStore = create((set, get) => ({
         [currency]: s.currencies[currency] + amount,
       },
     }));
+    debouncedSave(get, set);
     return amount;
   },
 
@@ -51,10 +79,9 @@ export const useGameStore = create((set, get) => ({
 
     if (anyChanged) {
       set({ currencies: nextCurrencies });
+      // No debounced save here — too noisy at 10 Hz. The periodic 5-second save
+      // catches passive accumulation between user interactions.
     }
-
-    // Time-based mechanics (burnout decay, Annual Review schedule, etc.) come in later sessions.
-    // Keep this function the single chokepoint for "what happens over time".
   },
 
   /**
@@ -64,14 +91,14 @@ export const useGameStore = create((set, get) => ({
     set((s) => ({
       meta: { ...s.meta, devMode: !s.meta.devMode },
     }));
+    debouncedSave(get, set);
   },
 
   /**
-   * Wipe the run and start fresh. Does not touch localStorage in this session
-   * (persistence comes in session 08).
+   * Wipe the run and start fresh. Clears localStorage and replaces state with defaults.
    */
   reset() {
-    set(initialState());
+    set(clear());
   },
 
   /**
@@ -82,5 +109,41 @@ export const useGameStore = create((set, get) => ({
     set((s) => ({
       perSecond: { ...s.perSecond, [currency]: rate },
     }));
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Replace the entire state. Used at load time. Bypasses debouncing.
+   */
+  _hydrate(loadedState) {
+    set(loadedState);
   },
 }));
+
+/**
+ * Periodic save — every 5 seconds, snapshot the state to catch passive accumulation
+ * between user interactions. Idempotent: safe to call multiple times.
+ */
+let periodicSaveInstalled = false;
+let periodicSaveInterval = null;
+
+export function installPeriodicSave() {
+  if (periodicSaveInstalled) return () => {};
+  periodicSaveInstalled = true;
+  periodicSaveInterval = setInterval(() => {
+    const state = useGameStore.getState();
+    const result = save(state);
+    useGameStore.setState((s) => ({
+      ui: {
+        ...s.ui,
+        lastSaveStatus: result.status,
+        lastSaveError: result.error,
+      },
+    }));
+  }, 5000);
+  return () => {
+    if (periodicSaveInterval) clearInterval(periodicSaveInterval);
+    periodicSaveInterval = null;
+    periodicSaveInstalled = false;
+  };
+}
