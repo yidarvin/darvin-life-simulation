@@ -12,8 +12,10 @@ import { isAtLeastYear } from '../../utils/gating';
 export function ShopPanel() {
   const year = useGameStore((s) => s.year);
   const stage = useGameStore((s) => s.stage);
+  const owned = useGameStore((s) => s.shop.owned);
 
   const visible = SHOP_ITEMS.filter((item) => {
+    if (owned[item.id]) return false;
     if (stage !== 'undergrad') return true;
     return !item.unlocksAtYear || isAtLeastYear(year, item.unlocksAtYear);
   });

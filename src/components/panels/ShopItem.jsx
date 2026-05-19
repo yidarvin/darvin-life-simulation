@@ -9,37 +9,35 @@ import { canAfford, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
  */
 export function ShopItem({ item }) {
   const currencies = useGameStore((s) => s.currencies);
-  const owned = useGameStore((s) => Boolean(s.shop.owned[item.id]));
   const stage = useGameStore((s) => s.stage);
+  const buyShopItem = useGameStore((s) => s.buyShopItem);
 
   const isLocked = item.lockedUntilInternship && stage === 'undergrad';
   const affordable = canAfford(currencies, item.cost);
 
-  const state = owned
-    ? 'owned'
-    : isLocked
-      ? 'locked'
-      : affordable
-        ? 'affordable'
-        : 'unaffordable';
+  const state = isLocked ? 'locked' : affordable ? 'affordable' : 'unaffordable';
+  const clickable = state === 'affordable';
+
+  const handleClick = () => {
+    if (!clickable) return;
+    buyShopItem(item.id);
+  };
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={!clickable}
       className={clsx(
-        'flex items-center gap-4 p-3 border transition-colors',
-        state === 'owned' && 'border-phosphor-faint bg-bg-deep opacity-60',
-        state === 'locked' && 'border-phosphor-faint bg-bg-deep opacity-50',
-        state === 'unaffordable' && 'border-phosphor-faint bg-bg-deep',
-        state === 'affordable' && 'border-phosphor bg-bg-deep hover:bg-[#11201d]',
+        'w-full flex items-center gap-4 p-3 border transition-colors text-left',
+        state === 'locked' && 'border-phosphor-faint bg-bg-deep opacity-50 cursor-not-allowed',
+        state === 'unaffordable' && 'border-phosphor-faint bg-bg-deep cursor-not-allowed',
+        state === 'affordable' &&
+          'border-phosphor bg-bg-deep cursor-pointer hover:bg-[#11201d] active:scale-[0.99]',
       )}
     >
       <div className="flex-1 min-w-0">
-        <div
-          className={clsx(
-            'text-phosphor-bright font-mono text-[13px] mb-0.5',
-            state === 'owned' && 'line-through',
-          )}
-        >
+        <div className="text-phosphor-bright font-mono text-[13px] mb-0.5">
           {item.name}
         </div>
         <div className="text-phosphor-dim text-[11px] italic leading-snug">
@@ -51,49 +49,22 @@ export function ShopItem({ item }) {
       </div>
 
       <div className="flex flex-col items-end gap-1 shrink-0">
-        {state === 'owned' && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor-bright border border-phosphor-bright px-2 py-1">
-            ✓ owned
-          </span>
-        )}
         {state === 'locked' && (
           <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor-dim border border-phosphor-faint px-2 py-1 max-w-[140px] text-center leading-tight">
             internship required
           </span>
         )}
-        {(state === 'affordable' || state === 'unaffordable') && (
-          <BuyButton item={item} affordable={affordable} />
-        )}
-        {!owned && !isLocked && (
-          <div className="font-mono text-[10px] text-phosphor-dim tabular-nums">
+        {!isLocked && (
+          <div
+            className={clsx(
+              'font-mono text-[10px] tabular-nums',
+              affordable ? 'text-phosphor-bright' : 'text-phosphor-dim',
+            )}
+          >
             {formatCost(item.cost)}
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function BuyButton({ item, affordable }) {
-  const buyShopItem = useGameStore((s) => s.buyShopItem);
-
-  const handleClick = () => {
-    if (!affordable) return;
-    buyShopItem(item.id);
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      disabled={!affordable}
-      className={clsx(
-        'px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
-        affordable
-          ? 'border-phosphor text-phosphor-bright cursor-pointer hover:bg-phosphor hover:text-bg active:scale-[0.97]'
-          : 'border-phosphor-faint text-phosphor-dim cursor-not-allowed',
-      )}
-    >
-      buy
     </button>
   );
 }
