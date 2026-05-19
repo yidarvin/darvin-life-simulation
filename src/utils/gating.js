@@ -33,7 +33,7 @@ export function unlockedCurrencies(state) {
     if (isAtLeastYear(year, 'senior')) out.add('applications');
   }
 
-  if (stage !== 'undergrad' && stage !== 'internship') out.add('influence');
+  if (stage !== 'undergrad') out.add('influence');
   if (career?.currentTrack) out.add('equity');
 
   return out;

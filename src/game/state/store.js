@@ -3,6 +3,9 @@ import { initialState } from './initialState';
 import { save, clear } from './persistence';
 import { SHOP_ITEMS_BY_ID } from '../../data/shopItems';
 import { YEAR_TRANSITIONS } from '../../data/yearTransitions';
+import { pickRandomCompany } from '../../data/internshipCompanies';
+import { buildEventSchedule, INTERNSHIP_EVENTS_BY_ID } from '../../data/internshipEvents';
+import { copy } from '../../data/copy';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -49,13 +52,20 @@ export const useGameStore = create((set, get) => ({
    * @returns {number} amount added (so callers can show "+N" feedback)
    */
   click(currency) {
-    const amount = get().perClick[currency];
-    set((s) => ({
-      currencies: {
-        ...s.currencies,
-        [currency]: s.currencies[currency] + amount,
-      },
-    }));
+    const state = get();
+    const amount = state.perClick[currency];
+
+    const nextCurrencies = {
+      ...state.currencies,
+      [currency]: state.currencies[currency] + amount,
+    };
+
+    // Internship bonus: each click also grants +1 Influence.
+    if (state.stage === 'internship') {
+      nextCurrencies.influence = (nextCurrencies.influence || 0) + 1;
+    }
+
+    set({ currencies: nextCurrencies });
     debouncedSave(get, set);
     return amount;
   },
@@ -70,21 +80,50 @@ export const useGameStore = create((set, get) => ({
     const speed = s.meta.devMode ? 10 : 1;
     const effectiveDt = dtSeconds * speed;
 
+    // Passive currency generation.
     const nextCurrencies = { ...s.currencies };
-    let anyChanged = false;
+    let currenciesChanged = false;
     for (const c of Object.keys(s.perSecond)) {
       const rate = s.perSecond[c];
       if (rate > 0) {
         nextCurrencies[c] += rate * effectiveDt;
-        anyChanged = true;
+        currenciesChanged = true;
       }
     }
 
-    if (anyChanged) {
-      set({ currencies: nextCurrencies });
-      // No debounced save here — too noisy at 10 Hz. The periodic 5-second save
-      // catches passive accumulation between user interactions.
+    // Internship progression. Time freezes while any modal is open so events don't queue up.
+    let internshipPatch = null;
+    let modalToOpen = null;
+    let shouldComplete = false;
+
+    if (s.internship.active && !s.internship.complete && !s.ui.activeModal) {
+      const VIRTUAL_DAYS_PER_REAL_SECOND = 3;
+      const nextDaysElapsed = Math.min(
+        s.internship.daysTotal,
+        s.internship.daysElapsed + effectiveDt * VIRTUAL_DAYS_PER_REAL_SECOND,
+      );
+
+      const fireable = s.internship.eventSchedule.find((e) => nextDaysElapsed >= e.atDay);
+      if (fireable) {
+        modalToOpen = { kind: 'internship_event', payload: { eventId: fireable.eventId } };
+      }
+
+      if (nextDaysElapsed >= s.internship.daysTotal) {
+        shouldComplete = true;
+      }
+
+      internshipPatch = { ...s.internship, daysElapsed: nextDaysElapsed };
     }
+
+    const patch = {};
+    if (currenciesChanged) patch.currencies = nextCurrencies;
+    if (internshipPatch) patch.internship = internshipPatch;
+    if (modalToOpen) patch.ui = { ...s.ui, activeModal: modalToOpen };
+
+    if (Object.keys(patch).length > 0) set(patch);
+
+    // completeInternship reads fresh state and opens its own modal.
+    if (shouldComplete) get().completeInternship();
   },
 
   /**
@@ -205,6 +244,156 @@ export const useGameStore = create((set, get) => ({
     });
     debouncedSave(get, set);
     return { ok: true };
+  },
+
+  /**
+   * Open a modal. Closes any currently-open modal first.
+   */
+  openModal(kind, payload = {}) {
+    set((s) => ({
+      ui: { ...s.ui, activeModal: { kind, payload } },
+    }));
+  },
+
+  closeModal() {
+    set((s) => ({ ui: { ...s.ui, activeModal: null } }));
+  },
+
+  /**
+   * Show the internship offer modal. Called from YearProgressPanel when sophomore + thresholds met.
+   */
+  beginInternshipOffer() {
+    const state = get();
+    if (state.stage !== 'undergrad' || state.year !== 'sophomore') {
+      console.warn('beginInternshipOffer: only valid from sophomore undergrad');
+      return;
+    }
+    const company = pickRandomCompany();
+    set((s) => ({
+      ui: { ...s.ui, activeModal: { kind: 'internship_offer', payload: { company } } },
+    }));
+  },
+
+  /**
+   * Player accepted the internship. Deduct the sophomore-year cost (same as direct sophomore→junior),
+   * flip stage to 'internship', initialize internship state.
+   */
+  acceptInternship(company) {
+    const state = get();
+    // Sophomore→junior threshold from YEAR_TRANSITIONS (hardcoded to avoid circular import).
+    const cost = { knowledge: 250, money: 300 };
+
+    if (!canAfford(state.currencies, cost)) {
+      console.warn('acceptInternship: thresholds not met');
+      return;
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(cost)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      stage: 'internship',
+      internship: {
+        active: true,
+        complete: false,
+        company,
+        daysElapsed: 0,
+        daysTotal: 90,
+        eventSchedule: buildEventSchedule(),
+        influenceAtStart: nextCurrencies.influence,
+      },
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Player declined the internship. Stay in sophomore year; modal closes.
+   */
+  declineInternship() {
+    set((s) => ({ ui: { ...s.ui, activeModal: null } }));
+  },
+
+  /**
+   * Resolve an internship sub-event. Apply the chosen option's effect, mark the event
+   * as fired (by removing from schedule), close the modal.
+   */
+  resolveInternshipEvent(eventId, optionIndex) {
+    const event = INTERNSHIP_EVENTS_BY_ID[eventId];
+    if (!event) return;
+    const option = event.options[optionIndex];
+    if (!option) return;
+
+    const state = get();
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, delta] of Object.entries(option.effect)) {
+      nextCurrencies[c] = (nextCurrencies[c] || 0) + delta;
+    }
+
+    const nextSchedule = state.internship.eventSchedule.filter((e) => e.eventId !== eventId);
+
+    set({
+      currencies: nextCurrencies,
+      internship: { ...state.internship, eventSchedule: nextSchedule },
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Internship timer hit 90 days. Open the results modal.
+   */
+  completeInternship() {
+    const state = get();
+    const influenceEarned = state.currencies.influence - state.internship.influenceAtStart;
+    const threshold = copy.modals.internshipResults.returnOfferThreshold;
+    const success = influenceEarned >= threshold;
+
+    set((s) => ({
+      internship: { ...s.internship, active: false, complete: true },
+      ui: {
+        ...s.ui,
+        activeModal: {
+          kind: 'internship_results',
+          payload: { success, influenceEarned },
+        },
+      },
+    }));
+  },
+
+  /**
+   * After viewing results, transition to junior year. If successful, apply the return-offer bonus.
+   */
+  finishInternship() {
+    const state = get();
+    const influenceEarned = state.currencies.influence - state.internship.influenceAtStart;
+    const success = influenceEarned >= copy.modals.internshipResults.returnOfferThreshold;
+    const bonus = success ? copy.modals.internshipResults.returnOfferBonus : {};
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, delta] of Object.entries(bonus)) {
+      nextCurrencies[c] = (nextCurrencies[c] || 0) + delta;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      stage: 'undergrad',
+      year: 'junior',
+      internship: {
+        active: false,
+        complete: false,
+        company: null,
+        daysElapsed: 0,
+        daysTotal: 90,
+        eventSchedule: [],
+        influenceAtStart: 0,
+      },
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
   },
 
   /**

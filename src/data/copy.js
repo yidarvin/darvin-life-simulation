@@ -33,6 +33,28 @@ export const copy = {
         rewardLabel: '+{n} Application',
       },
     },
+    internship: {
+      knowledge: {
+        command: './push_commit.sh',
+        flavor: 'Push code. Reviewer was hired three weeks ago.',
+        rewardLabel: '+{n} Knowledge +1 🌟',
+      },
+      money: {
+        command: './close_ticket.sh',
+        flavor: 'Close out a Jira ticket. #general celebrates with three rocket emojis.',
+        rewardLabel: '+${n} +1 🌟',
+      },
+      research: {
+        command: './read_internal_doc.sh',
+        flavor: 'Skim the design doc. Half the diagrams are dead Figma links.',
+        rewardLabel: '+{n} Research +1 🌟',
+      },
+      applications: {
+        command: './prep_return_pitch.sh',
+        flavor: 'Polish the slide deck for the return-offer conversation. Add a roadmap. Cite yourself.',
+        rewardLabel: '+{n} Application +1 🌟',
+      },
+    },
     // Career-track action copy is populated in session 17+.
     faang: {},
     startup: {},
@@ -49,6 +71,24 @@ export const copy = {
         'You survived. {currentYear}-year transcript: a few off-by-ones, several cans of cold brew, {flavor}\n\nNext: {nextYear} year. Unlocking {unlocks}.',
       confirmLabel: 'Continue',
       cancelLabel: 'Stay a while',
+    },
+    internshipOffer: {
+      title: 'Summer internship offer',
+      bodyTemplate:
+        '{company} is offering you a summer internship.\n\n{companyFlavor}\n\n90 days. Perform well, you get a return offer. Perform poorly, you get a LinkedIn endorsement.',
+      acceptLabel: 'Accept',
+      declineLabel: 'Decline',
+    },
+    internshipResults: {
+      titleSuccess: 'Return offer extended',
+      titleFailure: 'No return offer',
+      bodyTemplateSuccess:
+        'You finished the summer at {company} with {influence} Influence — enough to earn a return offer.\n\nYou now have a fallback senior-year job offer. You will mention this in every conversation with your peers for the next nine months.',
+      bodyTemplateFailure:
+        'You finished the summer at {company} with {influence} Influence — not quite enough for a return offer.\n\nYou get a LinkedIn endorsement from your manager. Their connection still expires next quarter.',
+      confirmLabel: 'Begin junior year',
+      returnOfferThreshold: 30,
+      returnOfferBonus: { knowledge: 500, influence: 20 },
     },
   },
   gauntlet: [],

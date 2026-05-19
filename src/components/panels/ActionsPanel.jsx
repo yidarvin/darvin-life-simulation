@@ -44,8 +44,13 @@ export function ActionsPanel() {
 function ActionSlot({ currency }) {
   const click = useGameStore((s) => s.click);
   const perClick = useGameStore((s) => s.perClick[currency]);
+  const stage = useGameStore((s) => s.stage);
 
-  const copyBlock = copy.actions.undergrad[currency];
+  const copyBlock =
+    stage === 'internship' && copy.actions.internship[currency]
+      ? copy.actions.internship[currency]
+      : copy.actions.undergrad[currency];
+
   if (!copyBlock) return null;
 
   const rewardLabel = formatCopy(copyBlock.rewardLabel, { n: perClick });

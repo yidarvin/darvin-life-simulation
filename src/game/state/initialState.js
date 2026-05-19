@@ -57,6 +57,15 @@ export function initialState() {
       courseSales: 0,
       connectsLastRegen: null,
     },
+    internship: {
+      active: false,
+      complete: false,
+      company: null,
+      daysElapsed: 0,
+      daysTotal: 90,
+      eventSchedule: [],
+      influenceAtStart: 0,
+    },
     burnout: 0,
     annualReview: {
       lastFiredAt: null,

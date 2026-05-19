@@ -69,7 +69,11 @@ export function YearProgressPanel() {
         </div>
 
         {eventRequired ? (
-          <EventRequiredNotice event={transition.requiresEvent} ready={ready} />
+          transition.requiresEvent === 'summer_internship' ? (
+            <SummerInternshipTrigger ready={ready} />
+          ) : (
+            <EventRequiredNotice event={transition.requiresEvent} ready={ready} />
+          )
         ) : (
           <button
             onClick={handleContinueClick}
@@ -94,6 +98,24 @@ export function YearProgressPanel() {
         onCancel={() => setModalOpen(false)}
       />
     </>
+  );
+}
+
+function SummerInternshipTrigger({ ready }) {
+  const beginInternshipOffer = useGameStore((s) => s.beginInternshipOffer);
+  return (
+    <button
+      onClick={() => beginInternshipOffer()}
+      disabled={!ready}
+      className={clsx(
+        'w-full py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',
+        ready
+          ? 'bg-bg-deep border-phosphor text-phosphor-bright cursor-pointer hover:bg-phosphor hover:text-bg'
+          : 'bg-bg-deep border-phosphor-faint text-phosphor-dim cursor-not-allowed',
+      )}
+    >
+      {ready ? 'Apply for summer internships' : 'Keep grinding (thresholds not met)'}
+    </button>
   );
 }
 
