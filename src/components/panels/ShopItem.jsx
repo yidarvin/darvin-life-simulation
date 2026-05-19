@@ -62,7 +62,7 @@ export function ShopItem({ item }) {
           </span>
         )}
         {(state === 'affordable' || state === 'unaffordable') && (
-          <BuyButton affordable={affordable} />
+          <BuyButton item={item} affordable={affordable} />
         )}
         {!owned && !isLocked && (
           <div className="font-mono text-[10px] text-phosphor-dim tabular-nums">
@@ -74,19 +74,22 @@ export function ShopItem({ item }) {
   );
 }
 
-/**
- * The Buy button. NoOp in session 11 — session 12 wires it to the store.
- */
-function BuyButton({ affordable }) {
+function BuyButton({ item, affordable }) {
+  const buyShopItem = useGameStore((s) => s.buyShopItem);
+
+  const handleClick = () => {
+    if (!affordable) return;
+    buyShopItem(item.id);
+  };
+
   return (
     <button
-      onClick={() => {
-        /* wired in session 12 */
-      }}
+      onClick={handleClick}
+      disabled={!affordable}
       className={clsx(
         'px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
         affordable
-          ? 'border-phosphor text-phosphor-bright cursor-pointer hover:bg-phosphor hover:text-bg'
+          ? 'border-phosphor text-phosphor-bright cursor-pointer hover:bg-phosphor hover:text-bg active:scale-[0.97]'
           : 'border-phosphor-faint text-phosphor-dim cursor-not-allowed',
       )}
     >

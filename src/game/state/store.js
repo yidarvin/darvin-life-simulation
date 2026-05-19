@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { initialState } from './initialState';
 import { save, clear } from './persistence';
+import { SHOP_ITEMS_BY_ID } from '../../data/shopItems';
+import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 500;
@@ -110,6 +112,59 @@ export const useGameStore = create((set, get) => ({
       perSecond: { ...s.perSecond, [currency]: rate },
     }));
     debouncedSave(get, set);
+  },
+
+  /**
+   * Buy a shop item. Validates ownership, locked status, and affordability.
+   * Returns true on success, false on failure (caller can show feedback if needed).
+   *
+   * Transactional: deducts cost AND applies effect in a single set() call.
+   */
+  buyShopItem(itemId) {
+    const state = get();
+    const item = SHOP_ITEMS_BY_ID[itemId];
+
+    if (!item) {
+      console.warn(`buyShopItem: unknown item id "${itemId}"`);
+      return false;
+    }
+    if (state.shop.owned[itemId]) {
+      return false;
+    }
+    if (item.lockedUntilInternship && state.stage === 'undergrad') {
+      return false;
+    }
+    if (!canAfford(state.currencies, item.cost)) {
+      return false;
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [currency, amount] of Object.entries(item.cost)) {
+      nextCurrencies[currency] -= amount;
+    }
+
+    const next = {
+      currencies: nextCurrencies,
+      shop: {
+        ...state.shop,
+        owned: { ...state.shop.owned, [itemId]: true },
+      },
+    };
+    if (item.effect.kind === 'perClick') {
+      next.perClick = {
+        ...state.perClick,
+        [item.effect.currency]: state.perClick[item.effect.currency] + item.effect.amount,
+      };
+    } else if (item.effect.kind === 'perSecond') {
+      next.perSecond = {
+        ...state.perSecond,
+        [item.effect.currency]: state.perSecond[item.effect.currency] + item.effect.amount,
+      };
+    }
+
+    set(next);
+    debouncedSave(get, set);
+    return true;
   },
 
   /**
