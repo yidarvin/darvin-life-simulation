@@ -180,7 +180,13 @@ export function getEffectiveMultiplier(state, currency) {
     currency,
   );
   const allocMult = getAllocMultiplier(state, currency);
-  const burnoutMult = getBurnoutMultiplier(state.burnout || 0, state.collapsed || false);
+  // Burnout is a career/internship mechanic. In undergrad, the wellness panel
+  // is hidden and vacation isn't available, so burnout must not throttle clicks
+  // there (otherwise a save with stale high burnout/collapsed locks the player).
+  const burnoutActive = state.stage === 'career' || state.stage === 'internship';
+  const burnoutMult = burnoutActive
+    ? getBurnoutMultiplier(state.burnout || 0, state.collapsed || false)
+    : 1;
   return trackMult * specMult * allocMult * burnoutMult;
 }
 

@@ -153,7 +153,13 @@ export const useGameStore = create((set, get) => ({
       nextCurrencies.influence = (nextCurrencies.influence || 0) + clickMultiplier;
     }
 
-    const nextBurnout = Math.min(BURNOUT_COLLAPSE, state.burnout + BURNOUT_PER_CLICK);
+    // Burnout is a post-internship mechanic — the BurnoutPanel and vacation
+    // modal only exist in career/internship, so undergrad would otherwise
+    // accumulate burnout silently and latch into collapse with no way to recover.
+    const burnoutActive = state.stage === 'career' || state.stage === 'internship';
+    const nextBurnout = burnoutActive
+      ? Math.min(BURNOUT_COLLAPSE, state.burnout + BURNOUT_PER_CLICK)
+      : state.burnout;
     const nextCollapsedFlag = nextCollapsed(state.collapsed, nextBurnout);
 
     set({
