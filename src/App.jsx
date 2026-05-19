@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HUD } from './components/panels/HUD';
 import { ActionsPanel } from './components/panels/ActionsPanel';
+import { ShopPanel } from './components/panels/ShopPanel';
 import { Panel } from './components/shared/Panel';
 import { Button } from './components/shared/Button';
 
@@ -14,10 +15,11 @@ export default function App() {
 
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 10 — actions panel" />
+      <Header version="v0.0" stage="session 11 — shop (display)" />
 
       <HUD />
       <ActionsPanel />
+      <ShopPanel />
 
       <Panel title="[ Tick Test ]">
         <div className="flex items-center gap-4 text-[12px] text-phosphor-dim">
@@ -27,7 +29,7 @@ export default function App() {
           <Button onClick={() => setPassive('knowledge', 0)}>Off</Button>
         </div>
         <p className="text-[11px] text-phosphor-dim italic mt-3">
-          Temporary dev scaffold. Removed once shop generators land in session 12.
+          Dev scaffold. Removed in session 12.
         </p>
       </Panel>
 
