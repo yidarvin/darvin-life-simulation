@@ -11,6 +11,7 @@ import { SpecializationPanel } from './components/panels/SpecializationPanel';
 import { RankProgressPanel } from './components/panels/RankProgressPanel';
 import { InfluenceAllocationPanel } from './components/panels/InfluenceAllocationPanel';
 import { HirePanel } from './components/panels/HirePanel';
+import { TeamsPanel } from './components/panels/TeamsPanel';
 import { SwapPanel } from './components/panels/SwapPanel';
 import { InternshipFlow } from './components/events/InternshipFlow';
 import { JobOfferFlow } from './components/events/JobOfferFlow';
@@ -31,6 +32,7 @@ export default function App() {
       <RankProgressPanel />
       <InfluenceAllocationPanel />
       <HirePanel />
+      <TeamsPanel />
       <SwapPanel />
       <ShopPanel />
       <Footer />

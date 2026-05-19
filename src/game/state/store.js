@@ -21,6 +21,7 @@ import {
   MAX_HIRE_LEVEL,
 } from '../../data/hires';
 import { canAfford } from '../../utils/currency';
+import { getHireTeamMultiplier, newTeamId, MAX_TEAMS, MAX_TEAM_SIZE } from '../../utils/teams';
 
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 500;
@@ -108,12 +109,13 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
-    // Hire passive generation (rank 4+).
+    // Hire passive generation (rank 4+), with team bonus (rank 6+).
     if (s.stage === 'career' && s.career.hires.length > 0) {
       for (const hire of s.career.hires) {
+        const teamMult = getHireTeamMultiplier(s.career.teams, hire.id);
         for (const [c, rate] of Object.entries(hire.rates)) {
           const multiplier = getEffectiveMultiplier(s, c);
-          nextCurrencies[c] = (nextCurrencies[c] || 0) + rate * hire.level * effectiveDt * multiplier;
+          nextCurrencies[c] = (nextCurrencies[c] || 0) + rate * hire.level * teamMult * effectiveDt * multiplier;
           currenciesChanged = true;
         }
       }
@@ -944,6 +946,108 @@ export const useGameStore = create((set, get) => ({
     });
     debouncedSave(get, set);
     return { ok: true, hire };
+  },
+
+  /**
+   * Create a new empty team. Name defaults to "Team N" where N is the next number.
+   */
+  createTeam() {
+    const state = get();
+    if (state.stage !== 'career' || state.career.rank < 6) {
+      return { ok: false, reason: 'rank_locked' };
+    }
+    if (state.career.teams.length >= MAX_TEAMS) {
+      return { ok: false, reason: 'cap_reached' };
+    }
+    const n = state.career.teams.length + 1;
+    const team = {
+      id: newTeamId(),
+      name: `Team ${n}`,
+      memberHireIds: [],
+    };
+    set({
+      career: { ...state.career, teams: [...state.career.teams, team] },
+    });
+    debouncedSave(get, set);
+    return { ok: true, team };
+  },
+
+  /**
+   * Delete a team. Members become unassigned (free to join other teams).
+   */
+  deleteTeam(teamId) {
+    const state = get();
+    set({
+      career: {
+        ...state.career,
+        teams: state.career.teams.filter((t) => t.id !== teamId),
+      },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Rename a team. Trims whitespace and clamps to 30 chars.
+   */
+  renameTeam(teamId, newName) {
+    const state = get();
+    const trimmed = (newName || '').slice(0, 30);
+    set({
+      career: {
+        ...state.career,
+        teams: state.career.teams.map((t) =>
+          t.id === teamId ? { ...t, name: trimmed } : t,
+        ),
+      },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Assign a hire to a team. Removes them from any other team first.
+   * Enforces MAX_TEAM_SIZE and team existence.
+   */
+  assignHireToTeam(teamId, hireId) {
+    const state = get();
+    const targetTeam = state.career.teams.find((t) => t.id === teamId);
+    if (!targetTeam) return { ok: false, reason: 'team_not_found' };
+    if ((targetTeam.memberHireIds || []).length >= MAX_TEAM_SIZE) {
+      return { ok: false, reason: 'team_full' };
+    }
+    if (!state.career.hires.find((h) => h.id === hireId)) {
+      return { ok: false, reason: 'hire_not_found' };
+    }
+
+    set({
+      career: {
+        ...state.career,
+        teams: state.career.teams.map((t) => {
+          const members = (t.memberHireIds || []).filter((id) => id !== hireId);
+          if (t.id === teamId) members.push(hireId);
+          return { ...t, memberHireIds: members };
+        }),
+      },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Remove a hire from a specific team.
+   */
+  removeHireFromTeam(teamId, hireId) {
+    const state = get();
+    set({
+      career: {
+        ...state.career,
+        teams: state.career.teams.map((t) =>
+          t.id === teamId
+            ? { ...t, memberHireIds: (t.memberHireIds || []).filter((id) => id !== hireId) }
+            : t,
+        ),
+      },
+    });
+    debouncedSave(get, set);
   },
 
   /**
