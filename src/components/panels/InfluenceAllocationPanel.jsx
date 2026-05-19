@@ -13,6 +13,7 @@ const BUCKETS = [
 ];
 
 const ADJUST_STEPS = [-100, -10, 10, 100];
+const MAX_EFFECTIVE_ALLOC = 4000;
 
 export function InfluenceAllocationPanel() {
   const stage = useGameStore((s) => s.stage);
@@ -37,7 +38,7 @@ export function InfluenceAllocationPanel() {
 
   const onMax = (bucket) => {
     const others = totalAllocated - allocation[bucket];
-    const maxForBucket = Math.max(0, Math.floor(influence) - others);
+    const maxForBucket = Math.max(0, Math.min(MAX_EFFECTIVE_ALLOC, Math.floor(influence) - others));
     setInfluenceAllocation({ [bucket]: maxForBucket });
   };
 
@@ -92,7 +93,7 @@ export function InfluenceAllocationPanel() {
                   </AdjustButton>
                 ))}
                 <AdjustButton
-                  disabled={available === 0}
+                  disabled={available === 0 || allocation[b.key] >= MAX_EFFECTIVE_ALLOC}
                   onClick={() => onMax(b.key)}
                 >
                   Max
