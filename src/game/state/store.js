@@ -1130,7 +1130,7 @@ export const useGameStore = create((set, get) => ({
    *
    * @returns { ok: true, hire } | { ok: false, reason }
    */
-  hireSomeone() {
+  hireSomeone(teamId = null) {
     const state = get();
     if (state.stage !== 'career' || !state.career.currentTrack) {
       return { ok: false, reason: 'not_in_career' };
@@ -1141,6 +1141,13 @@ export const useGameStore = create((set, get) => ({
     const cap = getHiresCap(state.career.rank);
     if (state.career.hires.length >= cap) {
       return { ok: false, reason: 'cap_reached', cap };
+    }
+    const targetTeam = teamId ? state.career.teams.find((t) => t.id === teamId) : null;
+    if (teamId && !targetTeam) {
+      return { ok: false, reason: 'team_not_found' };
+    }
+    if (targetTeam && (targetTeam.memberHireIds || []).length >= MAX_TEAM_SIZE) {
+      return { ok: false, reason: 'team_full' };
     }
     const cost = getHireCost(state.career.currentTrack, state.career.hires.length);
     if (!canAfford(getSpendableCurrencies(state), cost)) {
@@ -1153,9 +1160,17 @@ export const useGameStore = create((set, get) => ({
       nextCurrencies[c] -= amount;
     }
 
+    const nextTeams = targetTeam
+      ? state.career.teams.map((t) =>
+          t.id === teamId
+            ? { ...t, memberHireIds: [...(t.memberHireIds || []), hire.id] }
+            : t,
+        )
+      : state.career.teams;
+
     set({
       currencies: nextCurrencies,
-      career: { ...state.career, hires: [...state.career.hires, hire] },
+      career: { ...state.career, hires: [...state.career.hires, hire], teams: nextTeams },
     });
     debouncedSave(get, set);
     return { ok: true, hire };
@@ -1218,7 +1233,7 @@ export const useGameStore = create((set, get) => ({
   /**
    * Hire a poached candidate — 3× normal cost but arrives at level 3. Same cap as hireSomeone.
    */
-  poachSomeone() {
+  poachSomeone(teamId = null) {
     const state = get();
     if (state.stage !== 'career' || !state.career.currentTrack) {
       return { ok: false, reason: 'not_in_career' };
@@ -1229,6 +1244,13 @@ export const useGameStore = create((set, get) => ({
     const cap = getHiresCap(state.career.rank);
     if (state.career.hires.length >= cap) {
       return { ok: false, reason: 'cap_reached', cap };
+    }
+    const targetTeam = teamId ? state.career.teams.find((t) => t.id === teamId) : null;
+    if (teamId && !targetTeam) {
+      return { ok: false, reason: 'team_not_found' };
+    }
+    if (targetTeam && (targetTeam.memberHireIds || []).length >= MAX_TEAM_SIZE) {
+      return { ok: false, reason: 'team_full' };
     }
     const cost = getPoachCost(state.career.currentTrack, state.career.hires.length);
     if (!canAfford(getSpendableCurrencies(state), cost)) {
@@ -1241,9 +1263,17 @@ export const useGameStore = create((set, get) => ({
       nextCurrencies[c] -= amount;
     }
 
+    const nextTeams = targetTeam
+      ? state.career.teams.map((t) =>
+          t.id === teamId
+            ? { ...t, memberHireIds: [...(t.memberHireIds || []), hire.id] }
+            : t,
+        )
+      : state.career.teams;
+
     set({
       currencies: nextCurrencies,
-      career: { ...state.career, hires: [...state.career.hires, hire] },
+      career: { ...state.career, hires: [...state.career.hires, hire], teams: nextTeams },
     });
     debouncedSave(get, set);
     return { ok: true, hire };

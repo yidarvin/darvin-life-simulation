@@ -11,12 +11,14 @@ import {
   MAX_HIRE_LEVEL,
 } from '../../data/hires';
 import { CURRENCY_EMOJI, canAfford, getSpendableCurrencies, formatCost } from '../../utils/currency';
+import { findHireTeam } from '../../utils/teams';
 
 export function HirePanel() {
   const stage = useGameStore((s) => s.stage);
   const rank = useGameStore((s) => s.career.rank);
   const track = useGameStore((s) => s.career.currentTrack);
   const hires = useGameStore((s) => s.career.hires);
+  const teams = useGameStore((s) => s.career.teams);
   const currencies = useGameStore((s) => s.currencies);
   const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const hireSomeone = useGameStore((s) => s.hireSomeone);
@@ -24,6 +26,7 @@ export function HirePanel() {
 
   if (stage !== 'career' || !track || rank < 4) return null;
 
+  const hasTeams = teams.length > 0;
   const spendable = getSpendableCurrencies({ currencies, career: { influenceAllocation } });
   const cap = getHiresCap(rank);
   const slotsRemaining = cap - hires.length;
@@ -35,37 +38,55 @@ export function HirePanel() {
   const poachCost = poachAvailable ? getPoachCost(track, hires.length) : null;
   const canPoach = poachAvailable && slotsRemaining > 0 && canAfford(spendable, poachCost);
 
+  const visibleHires = hasTeams
+    ? hires.filter((h) => !findHireTeam(teams, h.id))
+    : hires;
+
+  const title = hasTeams ? '[ Unassigned ]' : '[ Team ]';
+
   return (
-    <Panel title="[ Team ]">
-      <div className="flex items-center justify-between mb-3 gap-3">
+    <Panel title={title}>
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <div className="text-phosphor-dim text-[11px] uppercase tracking-[0.12em]">
-          Hires: <span className="text-phosphor tabular-nums">{hires.length} / {cap}</span>
-        </div>
-        <div className="flex gap-2">
-          {slotsRemaining > 0 ? (
-            <ActionPillButton disabled={!canHire} onClick={() => hireSomeone()}>
-              hire ({formatCost(hireCost)})
-            </ActionPillButton>
-          ) : (
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor-dim border border-phosphor-faint px-3 py-1">
-              team full
+          {hasTeams ? 'Unassigned' : 'Hires'}:{' '}
+          <span className="text-phosphor tabular-nums">
+            {hasTeams ? visibleHires.length : hires.length} / {cap}
+          </span>
+          {hasTeams && (
+            <span className="ml-2 text-phosphor-dim">
+              (total {hires.length})
             </span>
           )}
-          {poachAvailable && slotsRemaining > 0 && (
-            <ActionPillButton disabled={!canPoach} onClick={() => poachSomeone()} tone="warm">
-              poach lvl 3 ({formatCost(poachCost)})
-            </ActionPillButton>
-          )}
         </div>
+        {!hasTeams && (
+          <div className="flex gap-2">
+            {slotsRemaining > 0 ? (
+              <ActionPillButton disabled={!canHire} onClick={() => hireSomeone()}>
+                hire ({formatCost(hireCost)})
+              </ActionPillButton>
+            ) : (
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor-dim border border-phosphor-faint px-3 py-1">
+                team full
+              </span>
+            )}
+            {poachAvailable && slotsRemaining > 0 && (
+              <ActionPillButton disabled={!canPoach} onClick={() => poachSomeone()} tone="warm">
+                poach lvl 3 ({formatCost(poachCost)})
+              </ActionPillButton>
+            )}
+          </div>
+        )}
       </div>
 
-      {hires.length === 0 ? (
+      {visibleHires.length === 0 ? (
         <div className="text-phosphor-dim text-[11px] italic text-center py-3">
-          No hires yet. Click Hire to bring on a team member.
+          {hasTeams
+            ? 'All hires are on a team. New hires can be brought directly into a team above.'
+            : 'No hires yet. Click Hire to bring on a team member.'}
         </div>
       ) : (
         <div className="space-y-1.5">
-          {hires.map((hire) => (
+          {visibleHires.map((hire) => (
             <HireRow key={hire.id} hire={hire} track={track} canManage={rank >= 5} />
           ))}
         </div>
