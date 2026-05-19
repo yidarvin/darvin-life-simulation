@@ -46,8 +46,8 @@ function HUDCell({ cellKey, emoji, label, money }) {
   const value = useGameStore((s) => s.currencies[cellKey]);
 
   return (
-    <div>
-      <CurrencyValue value={value} money={money} emoji={emoji} size="xl" bright />
+    <div className="min-w-0">
+      <CurrencyValue value={value} money={money} emoji={emoji} size="xl" bright compact />
       <div className="text-[10px] tracking-[0.18em] uppercase text-phosphor-dim mt-1.5">
         {label}
       </div>
