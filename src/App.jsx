@@ -25,7 +25,9 @@ import { RandomEventFlow } from './components/events/RandomEventFlow';
 import { EndgameFlow } from './components/events/EndgameFlow';
 import { WellnessFlow } from './components/events/WellnessFlow';
 import { OfflineCatchUpFlow } from './components/events/OfflineCatchUpFlow';
+import { MusicController } from './components/MusicController';
 import { initOfflineCatchUp, teardownOfflineCatchUp } from './game/state/offlineCatchUp';
+import { music } from './utils/music';
 
 export default function App() {
   useEffect(() => {
@@ -33,8 +35,21 @@ export default function App() {
     return () => teardownOfflineCatchUp();
   }, []);
 
+  useEffect(() => {
+    const unlock = () => music.unlock();
+    document.addEventListener('click', unlock, { once: true });
+    document.addEventListener('touchstart', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
   return (
     <AppShell>
+      <MusicController />
       <Header version="v0.1" stage="Barely working prototype.  Ready to ship." />
       <HUD />
       <ActionsPanel />

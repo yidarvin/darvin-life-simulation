@@ -1,34 +1,50 @@
 import { useState, useEffect } from 'react';
 import { Modal } from './shared/Modal';
 import { sound } from '../utils/sound';
+import { music } from '../utils/music';
 
 export function AboutModal({ open, onClose }) {
-  const [muted, setMutedState] = useState(sound.isMuted());
-  const [volume, setVolumeState] = useState(sound.getVolume());
+  const [sfxMuted, setSfxMuted] = useState(sound.isMuted());
+  const [sfxVolume, setSfxVolume] = useState(sound.getVolume());
+  const [musicMuted, setMusicMuted] = useState(music.isMuted());
+  const [musicVolume, setMusicVolume] = useState(music.getVolume());
 
   useEffect(() => {
     if (open) {
-      setMutedState(sound.isMuted());
-      setVolumeState(sound.getVolume());
+      setSfxMuted(sound.isMuted());
+      setSfxVolume(sound.getVolume());
+      setMusicMuted(music.isMuted());
+      setMusicVolume(music.getVolume());
     }
   }, [open]);
 
-  const toggleMute = () => {
+  const toggleSfxMute = () => {
     // Play click BEFORE toggling so a mute press still gives audible feedback.
     sound.play('click');
     const next = sound.toggleMuted();
-    setMutedState(next);
+    setSfxMuted(next);
     if (!next) sound.play('shopBuy');
   };
 
-  const handleVolumeChange = (e) => {
+  const handleSfxVolumeChange = (e) => {
     const v = parseFloat(e.target.value);
     sound.setVolume(v);
-    setVolumeState(v);
+    setSfxVolume(v);
   };
 
-  const handleVolumeRelease = () => {
+  const handleSfxVolumeRelease = () => {
     sound.play('shopBuy');
+  };
+
+  const toggleMusicMute = () => {
+    const next = music.toggleMuted();
+    setMusicMuted(next);
+  };
+
+  const handleMusicVolumeChange = (e) => {
+    const v = parseFloat(e.target.value);
+    music.setVolume(v);
+    setMusicVolume(v);
   };
 
   return (
@@ -55,34 +71,24 @@ export function AboutModal({ open, onClose }) {
 
       <div className="mt-4 border-t border-phosphor-faint pt-3 text-left">
         <div className="font-mono uppercase tracking-[0.14em] text-phosphor text-[10px] mb-2">
-          Sound
+          Audio
         </div>
-        <div className="flex items-center gap-3 mb-3">
-          <button
-            onClick={toggleMute}
-            className="min-w-[44px] min-h-[44px] px-3 font-mono text-[10px] uppercase tracking-[0.1em] border border-phosphor-faint text-phosphor hover:border-phosphor hover:text-phosphor-bright cursor-pointer"
-          >
-            {muted ? 'unmute' : 'mute'}
-          </button>
-          <div className="flex-1">
-            <div className="text-[10px] text-phosphor-dim uppercase tracking-[0.12em] mb-1 flex justify-between">
-              <span>volume</span>
-              <span className="tabular-nums">{Math.round(volume * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={volume}
-              onChange={handleVolumeChange}
-              onMouseUp={handleVolumeRelease}
-              onTouchEnd={handleVolumeRelease}
-              disabled={muted}
-              className="w-full h-2 bg-bg-deep border border-phosphor-faint appearance-none cursor-pointer accent-phosphor disabled:opacity-40"
-            />
-          </div>
-        </div>
+        <SettingsRow
+          label="Sound effects"
+          muted={sfxMuted}
+          volume={sfxVolume}
+          onToggleMute={toggleSfxMute}
+          onVolumeChange={handleSfxVolumeChange}
+          onVolumeRelease={handleSfxVolumeRelease}
+        />
+        <SettingsRow
+          label="Music"
+          muted={musicMuted}
+          volume={musicVolume}
+          onToggleMute={toggleMusicMute}
+          onVolumeChange={handleMusicVolumeChange}
+          onVolumeRelease={() => {}}
+        />
       </div>
 
       <div className="border-t border-phosphor-faint pt-3 text-left text-[11px] text-phosphor-dim leading-snug">
@@ -104,5 +110,39 @@ export function AboutModal({ open, onClose }) {
         Built with Claude Code. v0.0. Critical reception: my mom says it&apos;s &ldquo;interesting.&rdquo;
       </div>
     </Modal>
+  );
+}
+
+function SettingsRow({ label, muted, volume, onToggleMute, onVolumeChange, onVolumeRelease }) {
+  return (
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-28 flex-shrink-0">
+        <div className="text-[10px] text-phosphor-dim uppercase tracking-[0.12em] mb-1">{label}</div>
+        <button
+          onClick={onToggleMute}
+          className="min-w-[44px] min-h-[36px] px-2 font-mono text-[10px] uppercase tracking-[0.1em] border border-phosphor-faint text-phosphor hover:border-phosphor hover:text-phosphor-bright cursor-pointer w-full"
+        >
+          {muted ? 'muted' : 'on'}
+        </button>
+      </div>
+      <div className="flex-1">
+        <div className="text-[10px] text-phosphor-dim uppercase tracking-[0.12em] mb-1 flex justify-between">
+          <span>volume</span>
+          <span className="tabular-nums">{Math.round(volume * 100)}%</span>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={volume}
+          onChange={onVolumeChange}
+          onMouseUp={onVolumeRelease}
+          onTouchEnd={onVolumeRelease}
+          disabled={muted}
+          className="w-full h-2 bg-bg-deep border border-phosphor-faint appearance-none cursor-pointer accent-phosphor disabled:opacity-40"
+        />
+      </div>
+    </div>
   );
 }
