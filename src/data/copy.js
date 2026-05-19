@@ -178,7 +178,21 @@ export const copy = {
     ],
   },
   gauntlet: [],
-  specialization: {},
+  specialization: {
+    panelTitle: {
+      faang: 'Pick a specialty',
+      startup: 'Pick a wedge',
+      phd: 'Pick a subfield',
+      upwork: 'Pick a niche',
+    },
+    panelSubtitle: {
+      faang: 'The internal job-leveling document calls all roles "Software Engineer." But your manager will ask which queue.',
+      startup: 'Your investors want to know what you\'re "primarily" focused on. Pick something with a roadmap.',
+      phd: 'Your advisor wants you to "commit." This is also for the candidacy paperwork.',
+      upwork: 'Your profile needs a tagline. "Generalist" doesn\'t rank in search.',
+    },
+    confirmHint: 'One-time choice. Resets on track swap.',
+  },
   tooltips: {},
 };
 

@@ -1,3 +1,5 @@
+import { getSpecMultiplier } from './specializations';
+
 /**
  * Canonical career-track data.
  *
@@ -158,4 +160,20 @@ export function getTrackMultiplier(track, currency, rank) {
     return 4;
   }
   return CAREER_TRACKS[track].rates[currency] ?? 1;
+}
+
+/**
+ * Combined multiplier: track × specialization (× any future modifiers added in later sessions).
+ *
+ * Use this everywhere instead of `getTrackMultiplier` for click/tick math.
+ * Components reading multipliers for display should also use this.
+ */
+export function getEffectiveMultiplier(state, currency) {
+  const trackMult = getTrackMultiplier(state.career.currentTrack, currency, state.career.rank);
+  const specMult = getSpecMultiplier(
+    state.career.currentTrack,
+    state.career.specialization?.id,
+    currency,
+  );
+  return trackMult * specMult;
 }

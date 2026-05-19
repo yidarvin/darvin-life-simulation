@@ -2,6 +2,8 @@ import clsx from 'clsx';
 import { useGameStore } from '../../game/state/store';
 import { Panel } from '../shared/Panel';
 import { CAREER_TRACKS } from '../../data/careerTracks';
+import { getSpec } from '../../data/specializations';
+import { CURRENCY_EMOJI } from '../../utils/currency';
 
 export function CareerLadderPanel() {
   const stage = useGameStore((s) => s.stage);
@@ -25,6 +27,7 @@ export function CareerLadderPanel() {
         >
           {trackData.rankLabels[rank]}
         </div>
+        <SpecializationBadge />
         {currentFlavor && (
           <div className="text-phosphor-dim text-[11px] italic mt-2 max-w-md mx-auto leading-snug">
             {currentFlavor}
@@ -70,5 +73,21 @@ export function CareerLadderPanel() {
         })}
       </div>
     </Panel>
+  );
+}
+
+function SpecializationBadge() {
+  const track = useGameStore((s) => s.career.currentTrack);
+  const spec = useGameStore((s) => s.career.specialization);
+
+  if (!spec) return null;
+  const specData = getSpec(track, spec.id);
+  if (!specData) return null;
+
+  const pct = Math.round((specData.effect.multiplier - 1) * 100);
+  return (
+    <div className="inline-block mt-2 px-3 py-0.5 border border-phosphor-faint text-phosphor-dim text-[10px] uppercase tracking-[0.12em]">
+      {specData.label} <span className="text-phosphor"> · +{pct}% {CURRENCY_EMOJI[specData.effect.currency]}</span>
+    </div>
   );
 }

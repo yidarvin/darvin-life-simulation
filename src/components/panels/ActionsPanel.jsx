@@ -3,7 +3,7 @@ import { Panel } from '../shared/Panel';
 import { ActionButton } from '../shared/ActionButton';
 import { unlockedCurrencies } from '../../utils/gating';
 import { copy, formatCopy } from '../../data/copy';
-import { getTrackMultiplier } from '../../data/careerTracks';
+import { getEffectiveMultiplier } from '../../data/careerTracks';
 
 /**
  * The four undergrad currencies, in their unlock order. Slot positions stay stable
@@ -48,6 +48,7 @@ function ActionSlot({ currency }) {
   const stage = useGameStore((s) => s.stage);
   const currentTrack = useGameStore((s) => s.career.currentTrack);
   const rank = useGameStore((s) => s.career.rank);
+  const specId = useGameStore((s) => s.career.specialization?.id);
 
   const copyBlock =
     stage === 'internship' && copy.actions.internship[currency]
@@ -56,7 +57,14 @@ function ActionSlot({ currency }) {
 
   if (!copyBlock) return null;
 
-  const multiplier = getTrackMultiplier(currentTrack, currency, rank);
+  const fauxState = {
+    career: {
+      currentTrack,
+      rank,
+      specialization: specId ? { id: specId } : null,
+    },
+  };
+  const multiplier = getEffectiveMultiplier(fauxState, currency);
   const effective = Math.floor(perClick * multiplier);
   const rewardLabel = formatCopy(copyBlock.rewardLabel, { n: effective });
 

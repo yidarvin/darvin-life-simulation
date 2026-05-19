@@ -6,7 +6,8 @@ import { YEAR_TRANSITIONS } from '../../data/yearTransitions';
 import { pickRandomCompany } from '../../data/internshipCompanies';
 import { buildEventSchedule, INTERNSHIP_EVENTS_BY_ID } from '../../data/internshipEvents';
 import { copy } from '../../data/copy';
-import { CAREER_TRACKS, getTrackMultiplier } from '../../data/careerTracks';
+import { CAREER_TRACKS, getEffectiveMultiplier } from '../../data/careerTracks';
+import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { getSwapCost, getTargetRank } from '../../data/swapTopology';
 import { canAfford } from '../../utils/currency';
@@ -57,7 +58,7 @@ export const useGameStore = create((set, get) => ({
   click(currency) {
     const state = get();
     const baseAmount = state.perClick[currency];
-    const multiplier = getTrackMultiplier(state.career.currentTrack, currency, state.career.rank);
+    const multiplier = getEffectiveMultiplier(state, currency);
     const amount = baseAmount * multiplier;
 
     const nextCurrencies = {
@@ -91,7 +92,7 @@ export const useGameStore = create((set, get) => ({
     for (const c of Object.keys(s.perSecond)) {
       const rate = s.perSecond[c];
       if (rate > 0) {
-        const multiplier = getTrackMultiplier(s.career.currentTrack, c, s.career.rank);
+        const multiplier = getEffectiveMultiplier(s, c);
         nextCurrencies[c] += rate * effectiveDt * multiplier;
         currenciesChanged = true;
       }
@@ -475,6 +476,33 @@ export const useGameStore = create((set, get) => ({
         rank: 1,
       },
       ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Pick a specialization for the current track. One-time per track entry.
+   *
+   * @param {string} specId - the specialization id (e.g., 'backend', 'theory')
+   */
+  chooseSpecialization(specId) {
+    const state = get();
+    if (state.stage !== 'career' || !state.career.currentTrack) {
+      console.warn('chooseSpecialization: not in career stage');
+      return;
+    }
+    if (state.career.specialization) {
+      console.warn('chooseSpecialization: already chosen this run');
+      return;
+    }
+    const validIds = (SPECIALIZATIONS[state.career.currentTrack] || []).map((s) => s.id);
+    if (!validIds.includes(specId)) {
+      console.warn(`chooseSpecialization: invalid spec "${specId}" for track ${state.career.currentTrack}`);
+      return;
+    }
+
+    set({
+      career: { ...state.career, specialization: { id: specId } },
     });
     debouncedSave(get, set);
   },
