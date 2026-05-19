@@ -6,19 +6,19 @@ import { ActionsPanel } from './components/panels/ActionsPanel';
 import { ShopPanel } from './components/panels/ShopPanel';
 import { YearProgressPanel } from './components/panels/YearProgressPanel';
 import { InternshipPanel } from './components/panels/InternshipPanel';
-import { CareerPlaceholder } from './components/panels/CareerPlaceholder';
+import { CareerLadderPanel } from './components/panels/CareerLadderPanel';
 import { InternshipFlow } from './components/events/InternshipFlow';
 import { JobOfferFlow } from './components/events/JobOfferFlow';
 
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 15 — job offer + tracks" />
+      <Header version="v0.0" stage="session 16 — career ladder" />
       <HUD />
       <ActionsPanel />
       <YearProgressPanel />
       <InternshipPanel />
-      <CareerPlaceholder />
+      <CareerLadderPanel />
       <ShopPanel />
       <Footer />
       <InternshipFlow />

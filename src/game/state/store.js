@@ -6,6 +6,7 @@ import { YEAR_TRANSITIONS } from '../../data/yearTransitions';
 import { pickRandomCompany } from '../../data/internshipCompanies';
 import { buildEventSchedule, INTERNSHIP_EVENTS_BY_ID } from '../../data/internshipEvents';
 import { copy } from '../../data/copy';
+import { getTrackMultiplier } from '../../data/careerTracks';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -53,7 +54,9 @@ export const useGameStore = create((set, get) => ({
    */
   click(currency) {
     const state = get();
-    const amount = state.perClick[currency];
+    const baseAmount = state.perClick[currency];
+    const multiplier = getTrackMultiplier(state.career.currentTrack, currency, state.career.rank);
+    const amount = baseAmount * multiplier;
 
     const nextCurrencies = {
       ...state.currencies,
@@ -86,7 +89,8 @@ export const useGameStore = create((set, get) => ({
     for (const c of Object.keys(s.perSecond)) {
       const rate = s.perSecond[c];
       if (rate > 0) {
-        nextCurrencies[c] += rate * effectiveDt;
+        const multiplier = getTrackMultiplier(s.career.currentTrack, c, s.career.rank);
+        nextCurrencies[c] += rate * effectiveDt * multiplier;
         currenciesChanged = true;
       }
     }
