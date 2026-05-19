@@ -163,7 +163,7 @@ export function getTrackMultiplier(track, currency, rank) {
 }
 
 /**
- * Combined multiplier: track × specialization (× any future modifiers added in later sessions).
+ * Combined multiplier: track × specialization × influence allocation.
  *
  * Use this everywhere instead of `getTrackMultiplier` for click/tick math.
  * Components reading multipliers for display should also use this.
@@ -175,5 +175,38 @@ export function getEffectiveMultiplier(state, currency) {
     state.career.specialization?.id,
     currency,
   );
-  return trackMult * specMult;
+  const allocMult = getAllocMultiplier(state, currency);
+  return trackMult * specMult * allocMult;
+}
+
+/**
+ * Compute the Influence-allocation multiplier for a currency.
+ *
+ * - Only knowledge / money / research have buckets.
+ * - Only unlocks at rank 3+.
+ * - If total allocation exceeds current Influence (e.g., after losing Influence to an event),
+ *   each bucket scales down proportionally so total effective ≤ current Influence.
+ * - Formula: min(5, 1 + effective * 0.001). Capped at 5× when 4000+ Influence allocated.
+ *
+ * Tuning: 100 alloc → 1.1×, 500 → 1.5×, 1000 → 2×, 4000 → 5× (cap).
+ */
+export function getAllocMultiplier(state, currency) {
+  if (state.stage !== 'career') return 1;
+  if (state.career.rank < 3) return 1;
+  if (!['knowledge', 'money', 'research'].includes(currency)) return 1;
+
+  const alloc = state.career.influenceAllocation;
+  const requested = alloc[currency] ?? 0;
+  if (requested <= 0) return 1;
+
+  const totalAllocated = (alloc.knowledge ?? 0) + (alloc.money ?? 0) + (alloc.research ?? 0);
+  const currentInfluence = state.currencies.influence;
+
+  let effective = requested;
+  if (totalAllocated > currentInfluence && totalAllocated > 0) {
+    const scale = currentInfluence / totalAllocated;
+    effective *= scale;
+  }
+
+  return Math.min(5, 1 + effective * 0.001);
 }

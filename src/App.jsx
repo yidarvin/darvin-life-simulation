@@ -9,6 +9,7 @@ import { InternshipPanel } from './components/panels/InternshipPanel';
 import { CareerLadderPanel } from './components/panels/CareerLadderPanel';
 import { SpecializationPanel } from './components/panels/SpecializationPanel';
 import { RankProgressPanel } from './components/panels/RankProgressPanel';
+import { InfluenceAllocationPanel } from './components/panels/InfluenceAllocationPanel';
 import { SwapPanel } from './components/panels/SwapPanel';
 import { InternshipFlow } from './components/events/InternshipFlow';
 import { JobOfferFlow } from './components/events/JobOfferFlow';
@@ -19,7 +20,7 @@ import { RandomEventFlow } from './components/events/RandomEventFlow';
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 20 — random events" />
+      <Header version="v0.0" stage="session 21 — influence allocation" />
       <HUD />
       <ActionsPanel />
       <YearProgressPanel />
@@ -27,6 +28,7 @@ export default function App() {
       <CareerLadderPanel />
       <SpecializationPanel />
       <RankProgressPanel />
+      <InfluenceAllocationPanel />
       <SwapPanel />
       <ShopPanel />
       <Footer />

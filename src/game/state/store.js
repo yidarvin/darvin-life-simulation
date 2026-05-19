@@ -768,6 +768,40 @@ export const useGameStore = create((set, get) => ({
   },
 
   /**
+   * Set the Influence allocation. Validates non-negative values and total ≤ current Influence
+   * (allows over-allocation up to total Influence; rejects beyond).
+   *
+   * @param {{knowledge?: number, money?: number, research?: number}} allocation
+   */
+  setInfluenceAllocation(allocation) {
+    const state = get();
+    if (state.stage !== 'career' || state.career.rank < 3) {
+      console.warn('setInfluenceAllocation: requires career rank 3+');
+      return;
+    }
+
+    const knowledge = Math.max(0, allocation.knowledge ?? state.career.influenceAllocation.knowledge);
+    const money = Math.max(0, allocation.money ?? state.career.influenceAllocation.money);
+    const research = Math.max(0, allocation.research ?? state.career.influenceAllocation.research);
+    const total = knowledge + money + research;
+
+    if (total > state.currencies.influence) {
+      console.warn(
+        `setInfluenceAllocation: total ${total} exceeds current Influence ${state.currencies.influence}`,
+      );
+      return;
+    }
+
+    set({
+      career: {
+        ...state.career,
+        influenceAllocation: { knowledge, money, research },
+      },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
    * Replace the entire state. Used at load time. Bypasses debouncing.
    */
   _hydrate(loadedState) {
