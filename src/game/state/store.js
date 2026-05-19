@@ -409,6 +409,11 @@ export const useGameStore = create((set, get) => ({
     if (item.requiresTrack && state.career?.currentTrack !== item.requiresTrack) {
       return false;
     }
+    // Instant items grant a lump sum on purchase, so the rank gate must also block
+    // the buy — there's no deferred bonus to wait for like perClick / perSecond items.
+    if (item.effect.kind === 'instant' && item.requiresRank && (state.career?.rank ?? 0) < item.requiresRank) {
+      return false;
+    }
     if (!canAfford(state.currencies, item.cost)) {
       return false;
     }
@@ -416,6 +421,10 @@ export const useGameStore = create((set, get) => ({
     const nextCurrencies = { ...state.currencies };
     for (const [currency, amount] of Object.entries(item.cost)) {
       nextCurrencies[currency] -= amount;
+    }
+    if (item.effect.kind === 'instant') {
+      const c = item.effect.currency;
+      nextCurrencies[c] = (nextCurrencies[c] ?? 0) + item.effect.amount;
     }
 
     set({

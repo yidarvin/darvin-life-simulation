@@ -58,6 +58,10 @@ export function ShopItem({ item }) {
 
 function effectLabel(effect) {
   const emoji = CURRENCY_EMOJI[effect.currency];
+  if (effect.kind === 'instant') {
+    const sign = effect.amount >= 0 ? '+' : '';
+    return `${sign}${effect.amount.toLocaleString()} ${emoji} (one-time)`;
+  }
   const verb = effect.kind === 'perClick' ? '/click' : '/sec';
   const amount =
     effect.kind === 'perSecond' && effect.amount < 1
