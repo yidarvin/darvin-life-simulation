@@ -1,4 +1,5 @@
 import { getCurrentPhase } from './phaseResolution';
+import { getMusicKey } from '../data/musicMap';
 
 const STORAGE_KEY = 'lifeSim:music';
 const DEFAULT_VOLUME = 0.4;
@@ -7,8 +8,8 @@ const MIN_PHASE_DURATION_MS = 8000;
 
 class MusicEngine {
   constructor() {
-    this.audioByPhase = new Map();
-    this.currentPhase = null;
+    this.audioByKey = new Map();
+    this.currentMusicKey = null;
     this.muted = false;
     this.volume = DEFAULT_VOLUME;
     this.unlocked = false;
@@ -47,7 +48,7 @@ class MusicEngine {
     if (this.pendingPhase) {
       const phase = this.pendingPhase;
       this.pendingPhase = null;
-      this.currentPhase = null;
+      this.currentMusicKey = null;
       this.playPhase(phase);
     }
   }
@@ -57,8 +58,8 @@ class MusicEngine {
     this._saveSettings();
     if (this.muted) {
       this._stopAll();
-    } else if (this.currentPhase) {
-      this._fadeIn(this.currentPhase);
+    } else if (this.currentMusicKey) {
+      this._fadeIn(this.currentMusicKey);
     }
   }
 
@@ -70,8 +71,8 @@ class MusicEngine {
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v));
     this._saveSettings();
-    if (this.currentPhase && !this.muted) {
-      const audio = this.audioByPhase.get(this.currentPhase);
+    if (this.currentMusicKey && !this.muted) {
+      const audio = this.audioByKey.get(this.currentMusicKey);
       if (audio) audio.volume = this.volume;
     }
   }
@@ -79,13 +80,19 @@ class MusicEngine {
   isMuted() { return this.muted; }
   getVolume() { return this.volume; }
 
+  /**
+   * Transition to whatever music corresponds to the given game phase.
+   * If the resolved music key matches what's already playing, no transition occurs.
+   */
   playPhase(phase) {
     if (!phase) return;
-    if (phase === this.currentPhase) return;
+    const musicKey = getMusicKey(phase);
+    if (!musicKey) return;
+    if (musicKey === this.currentMusicKey) return;
 
     const now = Date.now();
     const sinceLast = now - this.lastPhaseChangeAt;
-    if (sinceLast < MIN_PHASE_DURATION_MS && this.currentPhase) {
+    if (sinceLast < MIN_PHASE_DURATION_MS && this.currentMusicKey) {
       return;
     }
     this.lastPhaseChangeAt = now;
@@ -95,36 +102,36 @@ class MusicEngine {
       return;
     }
 
-    const oldPhase = this.currentPhase;
-    this.currentPhase = phase;
+    const oldKey = this.currentMusicKey;
+    this.currentMusicKey = musicKey;
 
-    if (oldPhase) this._fadeOut(oldPhase);
-    if (!this.muted) this._fadeIn(phase);
+    if (oldKey) this._fadeOut(oldKey);
+    if (!this.muted) this._fadeIn(musicKey);
   }
 
-  _getOrCreate(phase) {
-    if (this.audioByPhase.has(phase)) {
-      return this.audioByPhase.get(phase);
+  _getOrCreate(musicKey) {
+    if (this.audioByKey.has(musicKey)) {
+      return this.audioByKey.get(musicKey);
     }
 
-    const audio = new Audio(`/music/${phase}.mp3`);
+    const audio = new Audio(`/music/${musicKey}.mp3`);
     audio.loop = true;
     audio.preload = 'auto';
     audio.volume = 0;
 
     audio.addEventListener('error', () => {
       if (import.meta.env.DEV) {
-        console.warn(`[music] file missing or failed to load: /music/${phase}.mp3`);
+        console.warn(`[music] file missing or failed to load: /music/${musicKey}.mp3`);
       }
-      this.audioByPhase.set(phase, null);
+      this.audioByKey.set(musicKey, null);
     });
 
-    this.audioByPhase.set(phase, audio);
+    this.audioByKey.set(musicKey, audio);
     return audio;
   }
 
-  _fadeIn(phase) {
-    const audio = this._getOrCreate(phase);
+  _fadeIn(musicKey) {
+    const audio = this._getOrCreate(musicKey);
     if (!audio) return;
 
     audio.volume = 0;
@@ -137,8 +144,8 @@ class MusicEngine {
     this._rampVolume(audio, 0, this.volume, CROSSFADE_MS);
   }
 
-  _fadeOut(phase) {
-    const audio = this.audioByPhase.get(phase);
+  _fadeOut(musicKey) {
+    const audio = this.audioByKey.get(musicKey);
     if (!audio) return;
     const startVol = audio.volume;
     this._rampVolume(audio, startVol, 0, CROSSFADE_MS, () => {
@@ -147,7 +154,7 @@ class MusicEngine {
   }
 
   _stopAll() {
-    for (const audio of this.audioByPhase.values()) {
+    for (const audio of this.audioByKey.values()) {
       if (!audio) continue;
       audio.pause();
       audio.volume = 0;

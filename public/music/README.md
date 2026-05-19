@@ -1,26 +1,34 @@
 # Music files
 
-Drop chiptune `.mp3` files here, one per phase. Phase names come from
-`src/utils/phaseResolution.js`:
+Drop chiptune `.mp3` files here, one per music key. Game phases map to music keys
+via `src/data/musicMap.js`; multiple phases can share a music file.
 
-- `undergrad-freshman.mp3`
-- `undergrad-sophomore.mp3`
-- `undergrad-junior.mp3`
-- `undergrad-senior.mp3`
-- `internship.mp3`
-- `faang-low.mp3`, `faang-mid.mp3`, `faang-high.mp3`
-- `startup-low.mp3`, `startup-mid.mp3`, `startup-high.mp3`
-- `phd-low.mp3`, `phd-mid.mp3`, `phd-high.mp3`
-- `upwork-low.mp3`, `upwork-mid.mp3`, `upwork-high.mp3`
+## Files (13 total)
 
-Composed in BeepBox (https://www.beepbox.co/) — open the BeepBox `.json`
-exports stored in `_source/` (gitignored) to edit.
+| File | Game phases |
+|---|---|
+| `undergrad-early.mp3` | freshman + sophomore |
+| `undergrad-late.mp3` | junior + senior |
+| `internship.mp3` | internship |
+| `faang-low.mp3` | FAANG ranks 1-3 |
+| `faang-mid.mp3` | FAANG ranks 4-5 |
+| `faang-high.mp3` | FAANG ranks 6-7 |
+| `startup-low.mp3` | Startup ranks 1-3 |
+| `startup-mid.mp3` | Startup ranks 4-5 |
+| `startup-high.mp3` | Startup ranks 6-7 |
+| `phd-low.mp3` | PhD ranks 1-3 |
+| `phd-mid.mp3` | PhD ranks 4-5 |
+| `phd-high.mp3` | PhD ranks 6-7 |
+| `upwork.mp3` | All three Upwork tiers (no variation by design) |
 
-Missing files are handled gracefully: the game stays silent for that phase
-until the file is added.
+Composed in BeepBox (https://www.beepbox.co/). Missing files degrade silently.
 
-## Recommended export settings
+## Composition notes
 
-- Format: MP3, 128 kbps (sufficient for chiptune; smaller files)
-- Length: 30-60 second loop
-- Loop point: end-of-song lands back on tonic for seamless repeat
+- 30-60 second loop, ~128 kbps MP3
+- Test the loop point — the last bar should land back on the tonic
+- For variations within a career track (low/mid/high), start with the same base
+  composition and modify (add a counter-melody for mid, speed up + thicker
+  arrangement for high)
+- Upwork is intentionally one song repeating across all tiers — the lack of
+  progression is the point
