@@ -296,7 +296,8 @@ export function getBaseRate(state, currency) {
 
 /**
  * Sum bonuses from owned shop items matching the kind ('perClick' | 'perSecond') and currency.
- * Filters by `requiresRank` if set (rank-gated career-tier items in the future).
+ * Filters by `requiresRank` and `requiresTrack` if set (ownership persists; the bonus
+ * only counts while the gate is satisfied).
  */
 export function getEffectiveBonus(state, currency, kind) {
   let total = 0;
@@ -306,8 +307,8 @@ export function getEffectiveBonus(state, currency, kind) {
     if (!item) continue;
     if (item.effect.kind !== kind) continue;
     if (item.effect.currency !== currency) continue;
-    // Optional rank gate. Undefined or 0 = always active.
     if (item.requiresRank && (state.career?.rank ?? 0) < item.requiresRank) continue;
+    if (item.requiresTrack && state.career?.currentTrack !== item.requiresTrack) continue;
     total += item.effect.amount;
   }
   return total;

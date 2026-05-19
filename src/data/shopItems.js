@@ -17,6 +17,10 @@
  *     requiresRank?: number,    // Optional rank-gate for career-tier items (future use).
  *                               // Ownership persists across ranks; the bonus only counts
  *                               // when career.rank >= requiresRank.
+ *     requiresTrack?: string,   // Optional track-gate for career-tier items. Ownership
+ *                               // persists across swaps; the bonus only counts while
+ *                               // career.currentTrack === requiresTrack. Also hides the
+ *                               // item from the shop on other tracks.
  *   }
  */
 export const SHOP_ITEMS = [
@@ -118,6 +122,25 @@ export const SHOP_ITEMS = [
     cost: { research: 5, knowledge: 300 },
     unlocksAtYear: 'junior',
     lockedUntilInternship: true,
+  },
+
+  // ── Track-gated career items ──────────────────────────────────────────
+  {
+    id: 'vesting_schedule',
+    name: '📜 Vesting Schedule',
+    flavor: 'Four-year vest, one-year cliff. The cliff is right now.',
+    effect: { kind: 'perSecond', currency: 'equity', amount: 0.5 },
+    cost: { money: 2000 },
+    requiresTrack: 'startup',
+  },
+  {
+    id: 'secondary_sale',
+    name: '🏦 Secondary Sale',
+    flavor: "Sell a sliver of your founders' shares back to the cap table.",
+    effect: { kind: 'perSecond', currency: 'equity', amount: 3 },
+    cost: { money: 25000, influence: 500 },
+    requiresTrack: 'startup',
+    requiresRank: 3,
   },
 ];
 

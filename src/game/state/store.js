@@ -117,12 +117,14 @@ export const useGameStore = create((set, get) => ({
   /**
    * Click an action button. Adds the effective amount for that currency.
    * Effective amount = (BASE_RATES[phase][currency] + sum of shop perClick bonuses) × multiplier.
+   * Devmode multiplies the resulting amount by 10 (matches the tick-loop devmode speed).
    * @param {'knowledge'|'money'|'research'|'applications'} currency
    * @returns {number} amount added (so callers can show "+N" feedback)
    */
   click(currency) {
     const state = get();
-    const grossAmount = getEffectiveClickAmount(state, currency);
+    const clickMultiplier = state.meta.devMode ? 10 : 1;
+    const grossAmount = getEffectiveClickAmount(state, currency) * clickMultiplier;
 
     const nextCurrencies = { ...state.currencies };
     let nextUpwork = state.upwork;
@@ -144,7 +146,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     if (state.stage === 'internship') {
-      nextCurrencies.influence = (nextCurrencies.influence || 0) + 1;
+      nextCurrencies.influence = (nextCurrencies.influence || 0) + clickMultiplier;
     }
 
     set({ currencies: nextCurrencies, upwork: nextUpwork });
@@ -402,6 +404,9 @@ export const useGameStore = create((set, get) => ({
       state.stage === 'undergrad' &&
       (state.year === 'freshman' || state.year === 'sophomore')
     ) {
+      return false;
+    }
+    if (item.requiresTrack && state.career?.currentTrack !== item.requiresTrack) {
       return false;
     }
     if (!canAfford(state.currencies, item.cost)) {

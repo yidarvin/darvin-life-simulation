@@ -12,6 +12,7 @@ import { isAtLeastYear } from '../../utils/gating';
 export function ShopPanel() {
   const year = useGameStore((s) => s.year);
   const stage = useGameStore((s) => s.stage);
+  const currentTrack = useGameStore((s) => s.career.currentTrack);
   const owned = useGameStore((s) => s.shop.owned);
 
   // Pre-internship: hide internship-gated items entirely. Sophomore→junior requires
@@ -22,6 +23,7 @@ export function ShopPanel() {
   const visible = SHOP_ITEMS.filter((item) => {
     if (owned[item.id]) return false;
     if (item.lockedUntilInternship && preInternship) return false;
+    if (item.requiresTrack && item.requiresTrack !== currentTrack) return false;
     if (stage !== 'undergrad') return true;
     return !item.unlocksAtYear || isAtLeastYear(year, item.unlocksAtYear);
   });
