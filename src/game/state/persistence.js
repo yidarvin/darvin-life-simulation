@@ -128,16 +128,21 @@ function mergeWithDefaults(loaded, defaults) {
   if (typeof defaults !== 'object' || Array.isArray(defaults)) {
     return loaded !== undefined ? loaded : defaults;
   }
+  if (typeof loaded !== 'object' || Array.isArray(loaded)) {
+    return defaults;
+  }
   const out = { ...defaults };
-  for (const key of Object.keys(defaults)) {
-    if (
-      typeof defaults[key] === 'object' &&
-      defaults[key] !== null &&
-      !Array.isArray(defaults[key])
-    ) {
-      out[key] = mergeWithDefaults(loaded[key], defaults[key]);
+  const keys = new Set([...Object.keys(defaults), ...Object.keys(loaded)]);
+  for (const key of keys) {
+    const dVal = defaults[key];
+    const lVal = loaded[key];
+    if (!(key in defaults)) {
+      // Dynamic-key entry only present in loaded (e.g. shop.owned[itemId]).
+      out[key] = lVal;
+    } else if (typeof dVal === 'object' && dVal !== null && !Array.isArray(dVal)) {
+      out[key] = mergeWithDefaults(lVal, dVal);
     } else {
-      out[key] = key in loaded ? loaded[key] : defaults[key];
+      out[key] = key in loaded ? lVal : dVal;
     }
   }
   return out;
