@@ -78,7 +78,7 @@ export function RankProgressPanel() {
         onClick={() => tryRankUp()}
         disabled={!ready}
         className={clsx(
-          'w-full py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',
+          'w-full min-h-[44px] py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',
           ready
             ? 'bg-bg-deep border-phosphor text-phosphor-bright cursor-pointer hover:bg-phosphor hover:text-bg'
             : 'bg-bg-deep border-phosphor-faint text-phosphor-dim cursor-not-allowed',

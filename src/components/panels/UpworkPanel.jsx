@@ -73,7 +73,7 @@ export function UpworkPanel() {
           onClick={handleBid}
           disabled={connects < 10}
           className={clsx(
-            'flex-1 px-3 py-2 font-mono text-[11px] uppercase tracking-[0.1em] border transition-colors',
+            'flex-1 px-3 py-2 min-h-[44px] font-mono text-[11px] uppercase tracking-[0.1em] border transition-colors',
             connects >= 10
               ? 'border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg cursor-pointer'
               : 'border-phosphor-faint text-phosphor-dim cursor-not-allowed',
@@ -89,7 +89,7 @@ export function UpworkPanel() {
               onClick={() => buyConnects(bundle.amount)}
               disabled={!can}
               className={clsx(
-                'px-3 py-2 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
+                'px-3 py-2 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
                 can
                   ? 'border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor cursor-pointer'
                   : 'border-phosphor-faint text-phosphor-dim opacity-50 cursor-not-allowed',

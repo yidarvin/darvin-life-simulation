@@ -154,8 +154,15 @@ export const useGameStore = create((set, get) => ({
    * Advance time by `dtSeconds` seconds. Called by the tick loop.
    * Applies passive generation and time-based mechanics.
    * Multiplied by 10 when devMode is on.
+   *
+   * @param {number} dtSeconds
+   * @param {{silent?: boolean}} [options] - When silent, suppress modal triggers
+   *   (random events, vacation warning, internship sub-events, internship completion).
+   *   World still advances. Used by offline catch-up so hours of queued modals
+   *   don't dogpile when the player returns.
    */
-  tick(dtSeconds) {
+  tick(dtSeconds, options = {}) {
+    const { silent = false } = options;
     const s = get();
     const speed = s.meta.devMode ? 10 : 1;
     const effectiveDt = dtSeconds * speed;
@@ -223,13 +230,15 @@ export const useGameStore = create((set, get) => ({
         s.internship.daysElapsed + effectiveDt * VIRTUAL_DAYS_PER_REAL_SECOND,
       );
 
-      const fireable = s.internship.eventSchedule.find((e) => nextDaysElapsed >= e.atDay);
-      if (fireable) {
-        internshipModal = { kind: 'internship_event', payload: { eventId: fireable.eventId } };
-      }
+      if (!silent) {
+        const fireable = s.internship.eventSchedule.find((e) => nextDaysElapsed >= e.atDay);
+        if (fireable) {
+          internshipModal = { kind: 'internship_event', payload: { eventId: fireable.eventId } };
+        }
 
-      if (nextDaysElapsed >= s.internship.daysTotal) {
-        shouldCompleteInternship = true;
+        if (nextDaysElapsed >= s.internship.daysTotal) {
+          shouldCompleteInternship = true;
+        }
       }
 
       internshipPatch = { ...s.internship, daysElapsed: nextDaysElapsed };
@@ -240,7 +249,7 @@ export const useGameStore = create((set, get) => ({
     let vacationModal = null;
     let burnoutFlagPatch = null;
     const isHighBurnout = s.burnout >= BURNOUT_BURNED;
-    if (s.stage === 'career' && isHighBurnout && !s.ui.activeModal && !s.ui.burnoutModalShown) {
+    if (!silent && s.stage === 'career' && isHighBurnout && !s.ui.activeModal && !s.ui.burnoutModalShown) {
       vacationModal = { kind: 'vacation_warning' };
     } else if (!isHighBurnout && s.ui.burnoutModalShown) {
       burnoutFlagPatch = { burnoutModalShown: false };
@@ -268,7 +277,7 @@ export const useGameStore = create((set, get) => ({
     let randomEventModal = null;
 
     const inCareer = s.stage === 'career' && s.career.currentTrack !== null;
-    if (inCareer && s.career.rank >= 2) {
+    if (!silent && inCareer && s.career.rank >= 2) {
       if (!s.events.enabled) {
         // Auto-activate the event system on first eligible tick.
         eventsPatch = {

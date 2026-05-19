@@ -78,7 +78,7 @@ function ActionPillButton({ disabled, onClick, children, tone = 'normal' }) {
       onClick={onClick}
       disabled={disabled}
       className={clsx(
-        'px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
+        'px-3 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors min-h-[44px] inline-flex items-center justify-center',
         disabled
           ? 'border-phosphor-faint text-phosphor-dim cursor-not-allowed'
           : tone === 'warm'

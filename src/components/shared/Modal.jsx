@@ -120,7 +120,7 @@ export function Modal({
 
 function ModalActionButton({ label, onClick, variant = 'primary' }) {
   const base =
-    'px-7 py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] cursor-pointer transition-colors border focus:outline-none focus:ring-2 focus:ring-phosphor-bright focus:ring-offset-2 focus:ring-offset-bg-elevated';
+    'px-7 py-2.5 min-h-[44px] font-mono text-[11px] uppercase tracking-[0.14em] cursor-pointer transition-colors border focus:outline-none focus:ring-2 focus:ring-phosphor-bright focus:ring-offset-2 focus:ring-offset-bg-elevated';
   const styles = {
     primary: 'bg-bg-deep border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg',
     secondary: 'bg-bg-deep border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor',

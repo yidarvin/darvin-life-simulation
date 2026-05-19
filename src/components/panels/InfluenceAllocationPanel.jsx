@@ -115,7 +115,7 @@ function AdjustButton({ children, onClick, disabled }) {
       onClick={onClick}
       disabled={disabled}
       className={clsx(
-        'px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors min-w-[36px]',
+        'px-2 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center',
         disabled
           ? 'border-phosphor-faint text-phosphor-dim cursor-not-allowed opacity-50'
           : 'border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor cursor-pointer',

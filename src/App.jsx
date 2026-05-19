@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { AppShell } from './components/AppShell';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -23,8 +24,15 @@ import { SwapFlow } from './components/events/SwapFlow';
 import { RandomEventFlow } from './components/events/RandomEventFlow';
 import { EndgameFlow } from './components/events/EndgameFlow';
 import { WellnessFlow } from './components/events/WellnessFlow';
+import { OfflineCatchUpFlow } from './components/events/OfflineCatchUpFlow';
+import { initOfflineCatchUp, teardownOfflineCatchUp } from './game/state/offlineCatchUp';
 
 export default function App() {
+  useEffect(() => {
+    initOfflineCatchUp();
+    return () => teardownOfflineCatchUp();
+  }, []);
+
   return (
     <AppShell>
       <Header version="v0.1" stage="Barely working prototype.  Ready to ship." />
@@ -51,6 +59,7 @@ export default function App() {
       <RandomEventFlow />
       <EndgameFlow />
       <WellnessFlow />
+      <OfflineCatchUpFlow />
     </AppShell>
   );
 }

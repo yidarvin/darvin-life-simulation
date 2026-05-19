@@ -372,6 +372,11 @@ export const copy = {
   // Other sections populated in later sessions:
   shop: [],
   modals: {
+    offlineCatchUp: {
+      title: 'Welcome back',
+      cappedNote: '(Catch-up capped at 4 hours. The clock keeps moving; the rewards plateau.)',
+      confirmLabel: 'Back to it',
+    },
     yearTransition: {
       title: 'End of {currentYear} year',
       bodyTemplate:

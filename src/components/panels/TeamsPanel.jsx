@@ -77,7 +77,7 @@ function TeamCard({ team }) {
           onBlur={handleNameBlur}
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
           maxLength={30}
-          className="bg-transparent border-none text-phosphor-bright font-mono text-[13px] focus:outline-none focus:border-b focus:border-phosphor flex-1 min-w-[140px]"
+          className="bg-transparent border-none text-phosphor-bright font-mono text-base focus:outline-none focus:border-b focus:border-phosphor flex-1 min-w-[140px] min-h-[44px]"
         />
         <div className="text-phosphor-dim text-[10px] uppercase tracking-[0.1em]">
           {memberCount} / {MAX_TEAM_SIZE} members ·{' '}
@@ -87,7 +87,7 @@ function TeamCard({ team }) {
         </div>
         <button
           onClick={handleDisband}
-          className="text-[10px] uppercase tracking-[0.12em] text-phosphor-dim hover:text-error px-2 py-0.5 border border-phosphor-faint hover:border-error"
+          className="text-[10px] uppercase tracking-[0.12em] text-phosphor-dim hover:text-error px-2 border border-phosphor-faint hover:border-error min-h-[44px] inline-flex items-center"
         >
           disband
         </button>
@@ -126,7 +126,7 @@ function TeamCard({ team }) {
                       : ''
                 }
                 className={clsx(
-                  'text-left px-2 py-1.5 text-[11px] border transition-colors',
+                  'text-left px-2 py-1.5 text-[11px] border transition-colors min-h-[44px]',
                   inThisTeam
                     ? 'border-phosphor bg-[#11201d] text-phosphor-bright'
                     : disabled

@@ -105,11 +105,13 @@ function StartupEndgame() {
       <div className="flex items-center gap-2">
         <input
           type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
           min="1"
           max={Math.floor(equity)}
           value={amount}
           onChange={(e) => setAmount(Math.max(0, parseInt(e.target.value, 10) || 0))}
-          className="flex-1 bg-bg-deep border border-phosphor-faint text-phosphor px-2 py-1 font-mono text-[12px] focus:outline-none focus:border-phosphor"
+          className="flex-1 bg-bg-deep border border-phosphor-faint text-phosphor px-2 py-2 font-mono text-base focus:outline-none focus:border-phosphor min-h-[44px]"
         />
         <div className="text-phosphor text-[12px] tabular-nums whitespace-nowrap">
           = <span className="text-phosphor-bright">${moneyValue.toLocaleString()}</span>
@@ -118,7 +120,7 @@ function StartupEndgame() {
           onClick={() => sellEquity(amount)}
           disabled={!canSell}
           className={clsx(
-            'px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
+            'px-3 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
             canSell
               ? 'border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg cursor-pointer'
               : 'border-phosphor-faint text-phosphor-dim cursor-not-allowed',
@@ -129,7 +131,7 @@ function StartupEndgame() {
         <button
           onClick={sellAll}
           disabled={equity < 1}
-          className="px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] border border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor cursor-pointer"
+          className="px-3 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor cursor-pointer"
         >
           all
         </button>
@@ -272,7 +274,7 @@ function InitiativeRow({ data, affordable, owned, isPermanent, isCourse, onLaunc
             onClick={onLaunch}
             disabled={!affordable}
             className={clsx(
-              'px-3 py-2 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors w-full',
+              'px-3 py-2 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors w-full',
               affordable
                 ? 'border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg cursor-pointer'
                 : 'border-phosphor-faint text-phosphor-dim cursor-not-allowed',
