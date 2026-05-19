@@ -28,6 +28,13 @@ import {
   UPWORK_COURSES,
   getCurrentExitPrice,
 } from '../../data/endgameMechanics';
+import {
+  splitTax,
+  CONNECT_BUNDLES,
+  CONNECTS_CAP,
+  getGigBidCost,
+  rollGigOutcome,
+} from '../../utils/upworkTax';
 
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 500;
@@ -76,21 +83,34 @@ export const useGameStore = create((set, get) => ({
     const state = get();
     const baseAmount = state.perClick[currency];
     const multiplier = getEffectiveMultiplier(state, currency);
-    const amount = baseAmount * multiplier;
+    const grossAmount = baseAmount * multiplier;
 
-    const nextCurrencies = {
-      ...state.currencies,
-      [currency]: state.currencies[currency] + amount,
-    };
+    const nextCurrencies = { ...state.currencies };
+    let nextUpwork = state.upwork;
+    let returnedAmount = grossAmount;
 
-    // Internship bonus: each click also grants +1 Influence.
+    if (currency === 'money') {
+      const isUpwork = state.career.currentTrack === 'upwork';
+      const { net, tax } = splitTax(grossAmount, isUpwork);
+      nextCurrencies.money = state.currencies.money + net;
+      if (tax > 0) {
+        nextUpwork = {
+          ...state.upwork,
+          platformTaxLifetime: state.upwork.platformTaxLifetime + tax,
+        };
+      }
+      returnedAmount = net;
+    } else {
+      nextCurrencies[currency] = state.currencies[currency] + grossAmount;
+    }
+
     if (state.stage === 'internship') {
       nextCurrencies.influence = (nextCurrencies.influence || 0) + 1;
     }
 
-    set({ currencies: nextCurrencies });
+    set({ currencies: nextCurrencies, upwork: nextUpwork });
     debouncedSave(get, set);
-    return amount;
+    return returnedAmount;
   },
 
   /**
@@ -102,15 +122,24 @@ export const useGameStore = create((set, get) => ({
     const s = get();
     const speed = s.meta.devMode ? 10 : 1;
     const effectiveDt = dtSeconds * speed;
+    const isUpwork = s.career.currentTrack === 'upwork';
 
-    // 1. Passive currency generation.
+    // 1. Passive currency generation. Money accumulates separately so we can
+    // apply the Upwork platform tax in one shot after summing all sources.
     const nextCurrencies = { ...s.currencies };
     let currenciesChanged = false;
+    let grossTaxableMoney = 0;
+
     for (const c of Object.keys(s.perSecond)) {
       const rate = s.perSecond[c];
       if (rate > 0) {
         const multiplier = getEffectiveMultiplier(s, c);
-        nextCurrencies[c] += rate * effectiveDt * multiplier;
+        const earned = rate * effectiveDt * multiplier;
+        if (c === 'money') {
+          grossTaxableMoney += earned;
+        } else {
+          nextCurrencies[c] += earned;
+        }
         currenciesChanged = true;
       }
     }
@@ -121,9 +150,27 @@ export const useGameStore = create((set, get) => ({
         const teamMult = getHireTeamMultiplier(s.career.teams, hire.id);
         for (const [c, rate] of Object.entries(hire.rates)) {
           const multiplier = getEffectiveMultiplier(s, c);
-          nextCurrencies[c] = (nextCurrencies[c] || 0) + rate * hire.level * teamMult * effectiveDt * multiplier;
+          const earned = rate * hire.level * teamMult * effectiveDt * multiplier;
+          if (c === 'money') {
+            grossTaxableMoney += earned;
+          } else {
+            nextCurrencies[c] = (nextCurrencies[c] || 0) + earned;
+          }
           currenciesChanged = true;
         }
+      }
+    }
+
+    // Apply Upwork tax to all gross Money accumulated above.
+    let upworkPatch = null;
+    if (grossTaxableMoney > 0) {
+      const { net, tax } = splitTax(grossTaxableMoney, isUpwork);
+      nextCurrencies.money = (nextCurrencies.money || 0) + net;
+      if (tax > 0) {
+        upworkPatch = {
+          ...s.upwork,
+          platformTaxLifetime: s.upwork.platformTaxLifetime + tax,
+        };
       }
     }
 
@@ -176,21 +223,22 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
-    // Upwork active course (rank 7+ Upwork endgame). TAX-FREE money generation.
-    let upworkPatch = null;
+    // Upwork active course (rank 7+ Upwork endgame). TAX-FREE money generation —
+    // added to nextCurrencies.money AFTER the tax loop above so it bypasses the 10%.
     if (s.stage === 'career' && s.upwork.activeCourse) {
       const courseData = UPWORK_COURSES.find((c) => c.id === s.upwork.activeCourse.courseId);
       if (courseData) {
         const elapsedSec = (Date.now() - s.upwork.activeCourse.startedAt) / 1000;
         if (elapsedSec >= courseData.durationSec) {
-          upworkPatch = { ...s.upwork, activeCourse: null };
+          upworkPatch = { ...(upworkPatch ?? s.upwork), activeCourse: null };
         } else {
           const earningsThisTick = courseData.moneyRate * effectiveDt;
           nextCurrencies.money = (nextCurrencies.money || 0) + earningsThisTick;
           currenciesChanged = true;
+          const base = upworkPatch ?? s.upwork;
           upworkPatch = {
-            ...s.upwork,
-            courseSales: s.upwork.courseSales + earningsThisTick,
+            ...base,
+            courseSales: base.courseSales + earningsThisTick,
             activeCourse: {
               ...s.upwork.activeCourse,
               totalEarned: s.upwork.activeCourse.totalEarned + earningsThisTick,
@@ -198,6 +246,13 @@ export const useGameStore = create((set, get) => ({
           };
         }
       }
+    }
+
+    // Connects regen — Upwork only, +1/sec up to the cap.
+    if (isUpwork && s.upwork.connects < CONNECTS_CAP) {
+      const base = upworkPatch ?? s.upwork;
+      const newConnects = Math.min(CONNECTS_CAP, base.connects + effectiveDt);
+      upworkPatch = { ...base, connects: newConnects };
     }
 
     // 4. Compose single set() call.
@@ -448,11 +503,23 @@ export const useGameStore = create((set, get) => ({
     if (!option) return;
 
     const state = get();
+    const isUpwork = state.career.currentTrack === 'upwork';
     const nextCurrencies = { ...state.currencies };
     let nextBurnout = state.burnout;
+    let nextUpwork = state.upwork;
+
     for (const [c, delta] of Object.entries(option.effect || {})) {
       if (c === 'burnout') {
         nextBurnout = Math.max(0, Math.min(100, nextBurnout + delta));
+      } else if (c === 'money' && delta > 0) {
+        const { net, tax } = splitTax(delta, isUpwork);
+        nextCurrencies.money = (nextCurrencies.money || 0) + net;
+        if (tax > 0) {
+          nextUpwork = {
+            ...nextUpwork,
+            platformTaxLifetime: nextUpwork.platformTaxLifetime + tax,
+          };
+        }
       } else {
         nextCurrencies[c] = (nextCurrencies[c] || 0) + delta;
       }
@@ -461,6 +528,7 @@ export const useGameStore = create((set, get) => ({
     set({
       currencies: nextCurrencies,
       burnout: nextBurnout,
+      upwork: nextUpwork,
       ui: { ...state.ui, activeModal: null },
     });
     debouncedSave(get, set);
@@ -1217,6 +1285,64 @@ export const useGameStore = create((set, get) => ({
           totalEarned: 0,
         },
       },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Spend Connects to bid on a gig. 5–10% acceptance, $800–$1600 reward (taxed).
+   */
+  bidOnGig() {
+    const state = get();
+    if (state.career.currentTrack !== 'upwork') {
+      return { ok: false, reason: 'not_on_upwork' };
+    }
+    const cost = getGigBidCost();
+    if (state.upwork.connects < cost) {
+      return { ok: false, reason: 'insufficient_connects', cost };
+    }
+
+    const { accepted, gross } = rollGigOutcome();
+    const { net, tax } = splitTax(gross, true);
+
+    const nextUpwork = {
+      ...state.upwork,
+      connects: state.upwork.connects - cost,
+      platformTaxLifetime: state.upwork.platformTaxLifetime + tax,
+    };
+    const nextCurrencies = {
+      ...state.currencies,
+      money: state.currencies.money + net,
+    };
+
+    set({ currencies: nextCurrencies, upwork: nextUpwork });
+    debouncedSave(get, set);
+    return { ok: true, accepted, cost, gross, net, tax };
+  },
+
+  /**
+   * Buy a bundle of Connects with Money. Bundle amounts in CONNECT_BUNDLES.
+   */
+  buyConnects(amount) {
+    const state = get();
+    if (state.career.currentTrack !== 'upwork') {
+      return { ok: false, reason: 'not_on_upwork' };
+    }
+    const bundle = CONNECT_BUNDLES.find((b) => b.amount === amount);
+    if (!bundle) return { ok: false, reason: 'invalid_bundle' };
+    if (state.upwork.connects >= CONNECTS_CAP) {
+      return { ok: false, reason: 'at_cap' };
+    }
+    if (state.currencies.money < bundle.price) {
+      return { ok: false, reason: 'insufficient_money' };
+    }
+
+    const newConnects = Math.min(CONNECTS_CAP, state.upwork.connects + bundle.amount);
+
+    set({
+      currencies: { ...state.currencies, money: state.currencies.money - bundle.price },
+      upwork: { ...state.upwork, connects: newConnects },
     });
     debouncedSave(get, set);
     return { ok: true };

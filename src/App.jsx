@@ -8,6 +8,7 @@ import { YearProgressPanel } from './components/panels/YearProgressPanel';
 import { InternshipPanel } from './components/panels/InternshipPanel';
 import { CareerLadderPanel } from './components/panels/CareerLadderPanel';
 import { SpecializationPanel } from './components/panels/SpecializationPanel';
+import { UpworkPanel } from './components/panels/UpworkPanel';
 import { RankProgressPanel } from './components/panels/RankProgressPanel';
 import { InfluenceAllocationPanel } from './components/panels/InfluenceAllocationPanel';
 import { HirePanel } from './components/panels/HirePanel';
@@ -24,13 +25,14 @@ import { EndgameFlow } from './components/events/EndgameFlow';
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 25 — rank 7 endgames" />
+      <Header version="v0.0" stage="session 26 — upwork sub-mechanics" />
       <HUD />
       <ActionsPanel />
       <YearProgressPanel />
       <InternshipPanel />
       <CareerLadderPanel />
       <SpecializationPanel />
+      <UpworkPanel />
       <RankProgressPanel />
       <InfluenceAllocationPanel />
       <HirePanel />
