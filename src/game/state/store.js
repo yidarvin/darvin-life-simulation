@@ -10,6 +10,7 @@ import { CAREER_TRACKS, getEffectiveMultiplier } from '../../data/careerTracks';
 import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { getSwapCost, getTargetRank } from '../../data/swapTopology';
+import { EVENTS_BY_ID, pickEligibleEvent, nextEventDelayMs } from '../../data/events';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -86,7 +87,7 @@ export const useGameStore = create((set, get) => ({
     const speed = s.meta.devMode ? 10 : 1;
     const effectiveDt = dtSeconds * speed;
 
-    // Passive currency generation.
+    // 1. Passive currency generation.
     const nextCurrencies = { ...s.currencies };
     let currenciesChanged = false;
     for (const c of Object.keys(s.perSecond)) {
@@ -98,10 +99,10 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
-    // Internship progression. Time freezes while any modal is open so events don't queue up.
+    // 2. Internship progression. Time freezes while any modal is open so events don't queue up.
     let internshipPatch = null;
-    let modalToOpen = null;
-    let shouldComplete = false;
+    let internshipModal = null;
+    let shouldCompleteInternship = false;
 
     if (s.internship.active && !s.internship.complete && !s.ui.activeModal) {
       const VIRTUAL_DAYS_PER_REAL_SECOND = 3;
@@ -112,25 +113,58 @@ export const useGameStore = create((set, get) => ({
 
       const fireable = s.internship.eventSchedule.find((e) => nextDaysElapsed >= e.atDay);
       if (fireable) {
-        modalToOpen = { kind: 'internship_event', payload: { eventId: fireable.eventId } };
+        internshipModal = { kind: 'internship_event', payload: { eventId: fireable.eventId } };
       }
 
       if (nextDaysElapsed >= s.internship.daysTotal) {
-        shouldComplete = true;
+        shouldCompleteInternship = true;
       }
 
       internshipPatch = { ...s.internship, daysElapsed: nextDaysElapsed };
     }
 
+    // 3. Random events (career stage, rank >= 2). Poisson-distributed inter-arrival.
+    let eventsPatch = null;
+    let randomEventModal = null;
+
+    const inCareer = s.stage === 'career' && s.career.currentTrack !== null;
+    if (inCareer && s.career.rank >= 2) {
+      if (!s.events.enabled) {
+        // Auto-activate the event system on first eligible tick.
+        eventsPatch = {
+          ...s.events,
+          enabled: true,
+          nextEventAt: Date.now() + nextEventDelayMs(s.meta.devMode),
+        };
+      } else if (!s.ui.activeModal && Date.now() >= (s.events.nextEventAt ?? 0)) {
+        const eligible = pickEligibleEvent(s);
+        eventsPatch = { ...s.events };
+        if (eligible) {
+          eventsPatch.firedEventIds = [...s.events.firedEventIds, eligible.id];
+          randomEventModal = { kind: 'random_event', payload: { eventId: eligible.id } };
+        }
+        // Always reschedule so an exhausted bank doesn't leave nextEventAt in the past.
+        eventsPatch.nextEventAt = Date.now() + nextEventDelayMs(s.meta.devMode);
+      }
+    }
+
+    // 4. Compose single set() call.
     const patch = {};
     if (currenciesChanged) patch.currencies = nextCurrencies;
     if (internshipPatch) patch.internship = internshipPatch;
-    if (modalToOpen) patch.ui = { ...s.ui, activeModal: modalToOpen };
+    if (eventsPatch) patch.events = eventsPatch;
+
+    // Modal precedence: internship event > random event (can't both apply in practice;
+    // random events only fire in career stage, internship lives in its own stage).
+    const modalToOpen = internshipModal || randomEventModal;
+    if (modalToOpen) {
+      patch.ui = { ...s.ui, activeModal: modalToOpen };
+    }
 
     if (Object.keys(patch).length > 0) set(patch);
 
     // completeInternship reads fresh state and opens its own modal.
-    if (shouldComplete) get().completeInternship();
+    if (shouldCompleteInternship) get().completeInternship();
   },
 
   /**
@@ -345,6 +379,35 @@ export const useGameStore = create((set, get) => ({
     set({
       currencies: nextCurrencies,
       internship: { ...state.internship, eventSchedule: nextSchedule },
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Resolve a random event. Apply the chosen option's effect, close the modal.
+   * Burnout is a top-level field, not a currency — separated here from the currencies patch.
+   */
+  resolveRandomEvent(eventId, optionIndex) {
+    const event = EVENTS_BY_ID[eventId];
+    if (!event) return;
+    const option = event.options[optionIndex];
+    if (!option) return;
+
+    const state = get();
+    const nextCurrencies = { ...state.currencies };
+    let nextBurnout = state.burnout;
+    for (const [c, delta] of Object.entries(option.effect || {})) {
+      if (c === 'burnout') {
+        nextBurnout = Math.max(0, Math.min(100, nextBurnout + delta));
+      } else {
+        nextCurrencies[c] = (nextCurrencies[c] || 0) + delta;
+      }
+    }
+
+    set({
+      currencies: nextCurrencies,
+      burnout: nextBurnout,
       ui: { ...state.ui, activeModal: null },
     });
     debouncedSave(get, set);

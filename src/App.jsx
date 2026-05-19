@@ -14,11 +14,12 @@ import { InternshipFlow } from './components/events/InternshipFlow';
 import { JobOfferFlow } from './components/events/JobOfferFlow';
 import { RankUpFlow } from './components/events/RankUpFlow';
 import { SwapFlow } from './components/events/SwapFlow';
+import { RandomEventFlow } from './components/events/RandomEventFlow';
 
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 19 — specialization" />
+      <Header version="v0.0" stage="session 20 — random events" />
       <HUD />
       <ActionsPanel />
       <YearProgressPanel />
@@ -33,6 +34,7 @@ export default function App() {
       <JobOfferFlow />
       <RankUpFlow />
       <SwapFlow />
+      <RandomEventFlow />
     </AppShell>
   );
 }
