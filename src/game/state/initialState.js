@@ -4,7 +4,7 @@
  */
 export function initialState() {
   return {
-    version: 1,
+    version: 2,
     savedAt: null,
     meta: {
       devMode: false,
@@ -20,20 +20,9 @@ export function initialState() {
       influence: 0,
       equity: 0,
     },
-    perClick: {
-      knowledge: 1,
-      money: 5,
-      research: 1,
-      applications: 1,
-    },
-    perSecond: {
-      knowledge: 0,
-      money: 0,
-      research: 0,
-      applications: 0,
-      influence: 0,
-      equity: 0,
-    },
+    // perClick / perSecond removed in v2. Effective rates compute on demand from
+    // BASE_RATES + shop.owned + career.phdEndowments via the helpers in
+    // src/data/careerTracks.js (getEffectiveClickAmount, getEffectivePerSecond).
     shop: {
       owned: {},
     },

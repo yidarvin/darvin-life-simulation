@@ -1,5 +1,7 @@
 import { getSpecMultiplier } from './specializations';
 import { getBurnoutMultiplier } from '../utils/burnout';
+import { SHOP_ITEMS_BY_ID } from './shopItems';
+import { PHD_ENDOWMENTS } from './endgameMechanics';
 
 /**
  * Canonical career-track data.
@@ -212,4 +214,94 @@ export function getAllocMultiplier(state, currency) {
   }
 
   return Math.min(5, 1 + effective * 0.001);
+}
+
+/**
+ * Per-phase click rate baselines. The big strategic shape (5× FAANG money etc) still
+ * comes from track multipliers via `getEffectiveMultiplier`; these are the small-mid
+ * differentiation between similar-shaped actions across tracks.
+ *
+ * Upwork is intentionally extremely minimal — a third or less of every other track,
+ * before multipliers and tax.
+ */
+export const BASE_RATES = {
+  undergrad:  { knowledge: 1,   money: 5, research: 1,   applications: 1   },
+  internship: { knowledge: 1,   money: 5, research: 1,   applications: 1   },
+  faang:      { knowledge: 1.2, money: 6, research: 0.8, applications: 1   },
+  startup:    { knowledge: 1,   money: 4, research: 1,   applications: 1.3 },
+  phd:        { knowledge: 1.3, money: 2, research: 1.3, applications: 0.8 },
+  upwork:     { knowledge: 0.3, money: 1, research: 0.2, applications: 0.3 },
+};
+
+/**
+ * Resolve the BASE rate (no bonuses, no multipliers) for a click on `currency`.
+ */
+export function getBaseRate(state, currency) {
+  if (!state) return 0;
+  if (state.stage === 'undergrad')  return BASE_RATES.undergrad[currency]  ?? 0;
+  if (state.stage === 'internship') return BASE_RATES.internship[currency] ?? 0;
+  if (state.stage === 'career' && state.career?.currentTrack) {
+    return BASE_RATES[state.career.currentTrack]?.[currency] ?? 0;
+  }
+  return 0;
+}
+
+/**
+ * Sum bonuses from owned shop items matching the kind ('perClick' | 'perSecond') and currency.
+ * Filters by `requiresRank` if set (rank-gated career-tier items in the future).
+ */
+export function getEffectiveBonus(state, currency, kind) {
+  let total = 0;
+  const owned = state?.shop?.owned || {};
+  for (const itemId of Object.keys(owned)) {
+    const item = SHOP_ITEMS_BY_ID[itemId];
+    if (!item) continue;
+    if (item.effect.kind !== kind) continue;
+    if (item.effect.currency !== currency) continue;
+    // Optional rank gate. Undefined or 0 = always active.
+    if (item.requiresRank && (state.career?.rank ?? 0) < item.requiresRank) continue;
+    total += item.effect.amount;
+  }
+  return total;
+}
+
+/**
+ * Sum per-second contributions from active PhD endowments (rank-7 endgame).
+ * Endowments aren't shop items; they live in `career.phdEndowments` as IDs.
+ */
+function getEndowmentPerSecond(state, currency) {
+  const ids = state?.career?.phdEndowments;
+  if (!ids || ids.length === 0) return 0;
+  let total = 0;
+  for (const id of ids) {
+    const endowment = PHD_ENDOWMENTS.find((e) => e.id === id);
+    if (!endowment) continue;
+    total += endowment.perSecondBoost?.[currency] ?? 0;
+  }
+  return total;
+}
+
+/**
+ * Total click amount for one click of `currency`, BEFORE Upwork tax.
+ * Formula: (base + bonus) × multiplier
+ */
+export function getEffectiveClickAmount(state, currency) {
+  const base = getBaseRate(state, currency);
+  const bonus = getEffectiveBonus(state, currency, 'perClick');
+  const multiplier = getEffectiveMultiplier(state, currency);
+  return (base + bonus) * multiplier;
+}
+
+/**
+ * Total per-second amount for `currency`, BEFORE Upwork tax. No passive base
+ * defined per track — passive generation is bonus-only (shop items + PhD
+ * endowments). Hires and Upwork courses generate elsewhere via their own rates.
+ */
+export function getEffectivePerSecond(state, currency) {
+  const shopBonus = getEffectiveBonus(state, currency, 'perSecond');
+  const endowmentBonus = getEndowmentPerSecond(state, currency);
+  const total = shopBonus + endowmentBonus;
+  if (total <= 0) return 0;
+  const multiplier = getEffectiveMultiplier(state, currency);
+  return total * multiplier;
 }

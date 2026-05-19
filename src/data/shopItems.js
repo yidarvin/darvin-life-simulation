@@ -4,6 +4,20 @@
  * Items with `lockedUntilInternship: true` are hidden from the shop until the player has
  * completed the summer internship (i.e., reached junior year). The shop filter in
  * ShopPanel.jsx handles the gating; the buy guard in store.js mirrors it as a defense.
+ *
+ * Item shape:
+ *   {
+ *     id: string,
+ *     name: string,
+ *     flavor: string,
+ *     cost: { [currency]: amount },
+ *     effect: { kind: 'perClick' | 'perSecond', currency, amount },
+ *     unlocksAtYear?: 'freshman' | 'sophomore' | 'junior' | 'senior',
+ *     lockedUntilInternship?: boolean,
+ *     requiresRank?: number,    // Optional rank-gate for career-tier items (future use).
+ *                               // Ownership persists across ranks; the bonus only counts
+ *                               // when career.rank >= requiresRank.
+ *   }
  */
 export const SHOP_ITEMS = [
   // ── Knowledge multipliers ─────────────────────────────────────────────

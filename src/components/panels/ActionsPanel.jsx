@@ -4,7 +4,7 @@ import { ActionButton } from '../shared/ActionButton';
 import { unlockedCurrencies } from '../../utils/gating';
 import { copy, formatCopy } from '../../data/copy';
 import { getCurrentPhase, resolveActionCopy } from '../../utils/phaseResolution';
-import { getEffectiveMultiplier } from '../../data/careerTracks';
+import { getEffectiveClickAmount } from '../../data/careerTracks';
 
 /**
  * The four undergrad currencies, in their unlock order. Slot positions stay stable
@@ -42,34 +42,32 @@ export function ActionsPanel() {
 }
 
 /**
- * Single action slot. Reads perClick with a narrow selector so the reward label
- * updates live when a shop purchase bumps the multiplier (session 12 behavior).
+ * Single action slot. Reads the full store snapshot so the reward label updates
+ * live whenever a shop purchase, rank-up, or specialization changes the
+ * effective click amount (per-track BASE_RATES + shop bonuses + multipliers).
+ *
+ * Subscribing to `shop.owned` keys + key career fields covers every input to
+ * getEffectiveClickAmount, so the floored display reflects current state.
  */
 function ActionSlot({ currency }) {
   const click = useGameStore((s) => s.click);
-  const perClick = useGameStore((s) => s.perClick[currency]);
   const stage = useGameStore((s) => s.stage);
   const year = useGameStore((s) => s.year);
   const currentTrack = useGameStore((s) => s.career.currentTrack);
   const rank = useGameStore((s) => s.career.rank);
-  const specId = useGameStore((s) => s.career.specialization?.id);
+  // Subscriptions below exist for their re-render side effect — any change to
+  // these inputs will refresh the displayed reward via getState() below.
+  useGameStore((s) => s.career.specialization?.id);
+  useGameStore((s) => s.shop.owned);
+  useGameStore((s) => s.burnout);
 
   const phase = getCurrentPhase({ stage, year, career: { currentTrack, rank } });
   const copyBlock = resolveActionCopy(phase, currency, copy.actions);
   if (!copyBlock) return null;
 
-  const fauxState = {
-    stage,
-    career: {
-      currentTrack,
-      rank,
-      specialization: specId ? { id: specId } : null,
-    },
-  };
-  const multiplier = getEffectiveMultiplier(fauxState, currency);
-  const effective = Math.floor(perClick * multiplier);
+  const grossEffective = Math.floor(getEffectiveClickAmount(useGameStore.getState(), currency));
   const isUpworkMoney = currency === 'money' && currentTrack === 'upwork';
-  const displayValue = isUpworkMoney ? Math.floor(effective * 0.9) : effective;
+  const displayValue = isUpworkMoney ? Math.floor(grossEffective * 0.9) : grossEffective;
   const rewardLabel = formatCopy(copyBlock.rewardLabel, { n: displayValue });
 
   return (

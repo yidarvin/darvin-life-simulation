@@ -6,7 +6,12 @@ import { YEAR_TRANSITIONS } from '../../data/yearTransitions';
 import { pickRandomCompany } from '../../data/internshipCompanies';
 import { buildEventSchedule, INTERNSHIP_EVENTS_BY_ID } from '../../data/internshipEvents';
 import { copy } from '../../data/copy';
-import { CAREER_TRACKS, getEffectiveMultiplier } from '../../data/careerTracks';
+import {
+  CAREER_TRACKS,
+  getEffectiveMultiplier,
+  getEffectiveClickAmount,
+  getEffectivePerSecond,
+} from '../../data/careerTracks';
 import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { getSwapCost, getTargetRank, canAffordSwap } from '../../data/swapTopology';
@@ -64,6 +69,11 @@ import {
 //   return 'failure';
 // }
 
+// Currencies that can accumulate passively via shop items or endowments.
+// Influence and Equity are included so future bonuses can target them; current
+// data has no perSecond contributors for those, so the loop skips them cheaply.
+const PASSIVE_CURRENCIES = ['knowledge', 'money', 'research', 'applications', 'influence', 'equity'];
+
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 500;
 
@@ -103,15 +113,14 @@ export const useGameStore = create((set, get) => ({
   ...initialState(),
 
   /**
-   * Click an action button. Adds `perClick[currency]` to that currency.
+   * Click an action button. Adds the effective amount for that currency.
+   * Effective amount = (BASE_RATES[phase][currency] + sum of shop perClick bonuses) × multiplier.
    * @param {'knowledge'|'money'|'research'|'applications'} currency
    * @returns {number} amount added (so callers can show "+N" feedback)
    */
   click(currency) {
     const state = get();
-    const baseAmount = state.perClick[currency];
-    const multiplier = getEffectiveMultiplier(state, currency);
-    const grossAmount = baseAmount * multiplier;
+    const grossAmount = getEffectiveClickAmount(state, currency);
 
     const nextCurrencies = { ...state.currencies };
     let nextUpwork = state.upwork;
@@ -158,18 +167,18 @@ export const useGameStore = create((set, get) => ({
     let currenciesChanged = false;
     let grossTaxableMoney = 0;
 
-    for (const c of Object.keys(s.perSecond)) {
-      const rate = s.perSecond[c];
-      if (rate > 0) {
-        const multiplier = getEffectiveMultiplier(s, c);
-        const earned = rate * effectiveDt * multiplier;
-        if (c === 'money') {
-          grossTaxableMoney += earned;
-        } else {
-          nextCurrencies[c] += earned;
-        }
-        currenciesChanged = true;
+    // Effective per-second amounts pull from shop.owned and career.phdEndowments
+    // — already multiplier-applied by the helper.
+    for (const c of PASSIVE_CURRENCIES) {
+      const earnedPerSec = getEffectivePerSecond(s, c);
+      if (earnedPerSec <= 0) continue;
+      const earned = earnedPerSec * effectiveDt;
+      if (c === 'money') {
+        grossTaxableMoney += earned;
+      } else {
+        nextCurrencies[c] = (nextCurrencies[c] ?? 0) + earned;
       }
+      currenciesChanged = true;
     }
 
     // Hire passive generation (rank 4+), with team bonus (rank 6+).
@@ -359,21 +368,12 @@ export const useGameStore = create((set, get) => ({
   },
 
   /**
-   * DEV-ONLY helper: set a passive rate directly. Used by the verification page in session 07
-   * to test the tick loop. Real passive generation is purchased via the shop in session 12.
-   */
-  _setPassive(currency, rate) {
-    set((s) => ({
-      perSecond: { ...s.perSecond, [currency]: rate },
-    }));
-    debouncedSave(get, set);
-  },
-
-  /**
    * Buy a shop item. Validates ownership, locked status, and affordability.
    * Returns true on success, false on failure (caller can show feedback if needed).
    *
-   * Transactional: deducts cost AND applies effect in a single set() call.
+   * Effect is no longer materialized into state — owning the item is the only
+   * change. getEffectiveClickAmount / getEffectivePerSecond read shop.owned to
+   * compute contributions on demand.
    */
   buyShopItem(itemId) {
     const state = get();
@@ -402,26 +402,13 @@ export const useGameStore = create((set, get) => ({
       nextCurrencies[currency] -= amount;
     }
 
-    const next = {
+    set({
       currencies: nextCurrencies,
       shop: {
         ...state.shop,
         owned: { ...state.shop.owned, [itemId]: true },
       },
-    };
-    if (item.effect.kind === 'perClick') {
-      next.perClick = {
-        ...state.perClick,
-        [item.effect.currency]: state.perClick[item.effect.currency] + item.effect.amount,
-      };
-    } else if (item.effect.kind === 'perSecond') {
-      next.perSecond = {
-        ...state.perSecond,
-        [item.effect.currency]: state.perSecond[item.effect.currency] + item.effect.amount,
-      };
-    }
-
-    set(next);
+    });
     debouncedSave(get, set);
     return true;
   },
@@ -1353,14 +1340,11 @@ export const useGameStore = create((set, get) => ({
     for (const [c, amount] of Object.entries(endowment.cost)) {
       nextCurrencies[c] -= amount;
     }
-    const nextPerSecond = { ...state.perSecond };
-    for (const [c, rate] of Object.entries(endowment.perSecondBoost)) {
-      nextPerSecond[c] = (nextPerSecond[c] || 0) + rate;
-    }
 
+    // Endowment boost is materialized lazily by getEffectivePerSecond — owning
+    // the endowment ID is the only state change here.
     set({
       currencies: nextCurrencies,
-      perSecond: nextPerSecond,
       career: {
         ...state.career,
         phdEndowments: [...(state.career.phdEndowments || []), endowmentId],
