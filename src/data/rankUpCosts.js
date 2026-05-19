@@ -6,7 +6,7 @@
  *
  * Tuning notes:
  *   - FAANG progression should feel grindy on Money but rewarded by its 5× Money multiplier.
- *   - Startup progression front-loads Influence; equity comes as a reward, not a cost.
+ *   - Startup progression front-loads Influence; equity is both cost AND reward (vests on rank-up — see applyRankUpEquityVest in careerTracks.js).
  *   - PhD is research-heavy. Costs accelerate hard at faculty ranks.
  *   - Upwork uses Money + Influence (Connects integration is session 26+).
  */

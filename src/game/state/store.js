@@ -11,6 +11,8 @@ import {
   getEffectiveMultiplier,
   getEffectiveClickAmount,
   getEffectivePerSecond,
+  applyRankUpEquityVest,
+  STARTUP_FOUNDER_GRANT,
 } from '../../data/careerTracks';
 import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
@@ -777,6 +779,10 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
+    if (trackId === 'startup') {
+      nextCurrencies.equity = (nextCurrencies.equity ?? 0) + STARTUP_FOUNDER_GRANT;
+    }
+
     set({
       currencies: nextCurrencies,
       stage: 'career',
@@ -885,6 +891,13 @@ export const useGameStore = create((set, get) => ({
     }
     const newRank = currentRank + 1;
     const trackData = CAREER_TRACKS[track];
+
+    nextCurrencies.equity = applyRankUpEquityVest(
+      track,
+      newRank,
+      nextCurrencies.equity ?? 0,
+      cost.money ?? 0,
+    );
 
     const isFirstEndgameForTrack =
       newRank === 7 && !state.endgames.reached.some((e) => e.track === track);
@@ -1033,6 +1046,13 @@ export const useGameStore = create((set, get) => ({
         connects: 40,
         jss: 100,
         connectsLastRegen: Date.now(),
+      };
+    }
+
+    if (targetTrack === 'startup' && targetRank === 1) {
+      patch.currencies = {
+        ...state.currencies,
+        equity: (state.currencies.equity ?? 0) + STARTUP_FOUNDER_GRANT,
       };
     }
 

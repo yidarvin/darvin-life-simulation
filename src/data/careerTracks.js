@@ -217,6 +217,54 @@ export function getAllocMultiplier(state, currency) {
 }
 
 /**
+ * Equity vesting per CAREER_TRACKS.md §"Equity vesting per track".
+ *
+ * Equity isn't clickable and has no generic per-second source, so progression on tracks
+ * that require Equity to rank up (Startup) depends on these cliff vests. FAANG RSUs
+ * and the PhD chair grant aren't strictly required for rank-up (those tracks don't
+ * cost Equity), but the spec defines them as part of each track's equity profile.
+ */
+export const FAANG_RSU_VEST = {
+  2: 50,
+  3: 200,
+  4: 800,
+  5: 3000,
+  6: 12000,
+  7: 50000,
+};
+
+export const STARTUP_FOUNDER_GRANT = 10000;
+export const STARTUP_DILUTION = 0.20;
+export const STARTUP_VEST_MULTIPLIER = 1.5;
+
+export const PHD_CHAIR_GRANT = 20000;
+
+/**
+ * Compute the player's new Equity total after a rank-up's equity vest applies.
+ * Call AFTER deducting the rank-up cost from currencies.
+ *
+ * @param {string} track       - 'faang' | 'startup' | 'phd' | 'upwork'
+ * @param {number} newRank     - the rank being advanced TO (2–7)
+ * @param {number} currentEquity - equity remaining after cost deduction
+ * @param {number} rankUpMoneyCost - the money cost of this rank-up (used as the "cash valuation" for startup)
+ * @returns {number} the new equity total to set
+ */
+export function applyRankUpEquityVest(track, newRank, currentEquity, rankUpMoneyCost = 0) {
+  if (track === 'faang') {
+    return currentEquity + (FAANG_RSU_VEST[newRank] ?? 0);
+  }
+  if (track === 'startup') {
+    const diluted = currentEquity * (1 - STARTUP_DILUTION);
+    const vest = STARTUP_VEST_MULTIPLIER * rankUpMoneyCost;
+    return diluted + vest;
+  }
+  if (track === 'phd' && newRank === 7) {
+    return currentEquity + PHD_CHAIR_GRANT;
+  }
+  return currentEquity;
+}
+
+/**
  * Per-phase click rate baselines. The big strategic shape (5× FAANG money etc) still
  * comes from track multipliers via `getEffectiveMultiplier`; these are the small-mid
  * differentiation between similar-shaped actions across tracks.
