@@ -3,6 +3,7 @@ import { Panel } from '../shared/Panel';
 import { ActionButton } from '../shared/ActionButton';
 import { unlockedCurrencies } from '../../utils/gating';
 import { copy, formatCopy } from '../../data/copy';
+import { getCurrentPhase, resolveActionCopy } from '../../utils/phaseResolution';
 import { getEffectiveMultiplier } from '../../data/careerTracks';
 
 /**
@@ -23,6 +24,8 @@ export function ActionsPanel() {
 
   const unlocked = unlockedCurrencies({ year, stage, career: { currentTrack } });
   const visible = ACTION_SLOTS.filter((slot) => unlocked.has(slot.currency));
+
+  if (visible.length === 0) return null;
 
   return (
     <Panel title="[ Actions ]">
@@ -46,18 +49,17 @@ function ActionSlot({ currency }) {
   const click = useGameStore((s) => s.click);
   const perClick = useGameStore((s) => s.perClick[currency]);
   const stage = useGameStore((s) => s.stage);
+  const year = useGameStore((s) => s.year);
   const currentTrack = useGameStore((s) => s.career.currentTrack);
   const rank = useGameStore((s) => s.career.rank);
   const specId = useGameStore((s) => s.career.specialization?.id);
 
-  const copyBlock =
-    stage === 'internship' && copy.actions.internship[currency]
-      ? copy.actions.internship[currency]
-      : copy.actions.undergrad[currency];
-
+  const phase = getCurrentPhase({ stage, year, career: { currentTrack, rank } });
+  const copyBlock = resolveActionCopy(phase, currency, copy.actions);
   if (!copyBlock) return null;
 
   const fauxState = {
+    stage,
     career: {
       currentTrack,
       rank,

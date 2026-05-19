@@ -7,14 +7,23 @@
 
 export const copy = {
   /**
-   * Action button copy. The `undergrad` block is per-currency; the career-track blocks
-   * are per-track-per-currency (since labels re-skin once a track is chosen).
+   * Action button copy, keyed by "phase" (year / internship / track-tier). The
+   * ActionsPanel resolves the right block via src/utils/phaseResolution.js, which
+   * falls through phase-specific → track-default → undergrad-senior.
    */
   actions: {
-    undergrad: {
+    // ── Undergrad: per-year ───────────────────────────────────────────────
+    'undergrad-freshman': {
       knowledge: {
-        command: './do_pset.sh',
-        flavor: 'Spend three hours hunting an off-by-one error.',
+        command: './compile_hello_world.sh',
+        flavor: 'It took six tries. You blame the IDE. It wasn\'t the IDE.',
+        rewardLabel: '+{n} Knowledge',
+      },
+    },
+    'undergrad-sophomore': {
+      knowledge: {
+        command: './debug_segfault.sh',
+        flavor: 'You added more print statements. It still segfaults. Different line now.',
         rewardLabel: '+{n} Knowledge',
       },
       money: {
@@ -22,9 +31,38 @@ export const copy = {
         flavor: "Explain recursion to five students who 'kind of get it.'",
         rewardLabel: '+${n}',
       },
+    },
+    'undergrad-junior': {
+      knowledge: {
+        command: './optimize_pset.sh',
+        flavor: "O(n²) was fine. You'll make it O(n log n) anyway.",
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './grade_labs.sh',
+        flavor: 'Hundred fifty lab reports. Each one different. Each one wrong.',
+        rewardLabel: '+${n}',
+      },
       research: {
         command: './beg_advisor.sh',
         flavor: 'Wash glassware. Maybe get a coauthor credit. Maybe not.',
+        rewardLabel: '+{n} Research',
+      },
+    },
+    'undergrad-senior': {
+      knowledge: {
+        command: './review_distributed_systems.sh',
+        flavor: 'You finally understand consensus. Tomorrow you\'ll forget.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './consult_freshman.sh',
+        flavor: '$30/hour to explain pointers to a nineteen-year-old.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './run_experiment.sh',
+        flavor: 'The cluster\'s down. Try again in an hour. Or tomorrow.',
         rewardLabel: '+{n} Research',
       },
       applications: {
@@ -33,33 +71,302 @@ export const copy = {
         rewardLabel: '+{n} Application',
       },
     },
+
+    // ── Internship ────────────────────────────────────────────────────────
     internship: {
       knowledge: {
-        command: './push_commit.sh',
-        flavor: 'Push code. Reviewer was hired three weeks ago.',
+        command: './push_first_commit.sh',
+        flavor: 'Reviewer requests minor changes. Six rounds.',
         rewardLabel: '+{n} Knowledge +1 🌟',
       },
       money: {
-        command: './close_ticket.sh',
-        flavor: 'Close out a Jira ticket. #general celebrates with three rocket emojis.',
+        command: './close_jira_ticket.sh',
+        flavor: 'Update three fields. Promote to In Review.',
         rewardLabel: '+${n} +1 🌟',
       },
       research: {
         command: './read_internal_doc.sh',
-        flavor: 'Skim the design doc. Half the diagrams are dead Figma links.',
+        flavor: 'Half the design doc is dead Figma links.',
         rewardLabel: '+{n} Research +1 🌟',
       },
       applications: {
-        command: './prep_return_pitch.sh',
-        flavor: 'Polish the slide deck for the return-offer conversation. Add a roadmap. Cite yourself.',
+        command: './polish_return_pitch.sh',
+        flavor: 'Practice your slide. The hiring manager will not attend.',
         rewardLabel: '+{n} Application +1 🌟',
       },
     },
-    // Career-track action copy is populated in session 17+.
-    faang: {},
-    startup: {},
-    phd: {},
-    upwork: {},
+
+    // ── FAANG ─────────────────────────────────────────────────────────────
+    'faang-low': {
+      knowledge: {
+        command: './push_pr.sh',
+        flavor: 'Six review rounds. The diff is twelve lines.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './vest_quarterly.sh',
+        flavor: 'RSU notification. Stock is sideways. So are you.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './skim_arxiv.sh',
+        flavor: 'Three preprints, one bookmark, zero actually read.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './refer_a_friend.sh',
+        flavor: '$5K referral bonus if they get past phone screen. They won\'t.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'faang-mid': {
+      knowledge: {
+        command: './lead_design_review.sh',
+        flavor: 'Two pages of comments. One actionable.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './advocate_for_promo.sh',
+        flavor: 'Your manager wrote "works well with others." That\'s the whole bullet.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './author_internal_paper.sh',
+        flavor: 'Quoted by your VP next quarter. You\'ll have moved teams by then.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './pipeline_referral.sh',
+        flavor: 'Submitted. Stuck in ATS. Recruiter is on PTO.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'faang-high': {
+      knowledge: {
+        command: './set_company_strategy.sh',
+        flavor: 'Three orgs implement your doc. You forget you wrote it.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './attend_calibration.sh',
+        flavor: 'You discuss other people\'s packets for four hours. You don\'t bring up your own.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './keynote_summit.sh',
+        flavor: 'Standing room only. Two people taking notes.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './hire_distinguished_engineer.sh',
+        flavor: 'You calibrate them. They\'ll outrank you in eighteen months.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+
+    // ── Startup ───────────────────────────────────────────────────────────
+    'startup-low': {
+      knowledge: {
+        command: './read_docs.sh',
+        flavor: 'The docs are out of date. Read the source.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './close_pilot.sh',
+        flavor: 'Three calls. One close. They\'ll churn in Q2.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './customer_interview.sh',
+        flavor: 'They want a feature you already shipped. Call it discovery.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './investor_update.sh',
+        flavor: 'Quarterly email. Skip the bad news.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'startup-mid': {
+      knowledge: {
+        command: './review_engineering_doc.sh',
+        flavor: 'Three rounds. Your CTO wrote one of them.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './close_enterprise.sh',
+        flavor: 'Sales cycle: fourteen months. Contract: twelve months. Math: don\'t.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './rewrite_pitch_v2.sh',
+        flavor: 'Same deck, new logo. Investors love it.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './recruit_vp.sh',
+        flavor: 'Coffee chats. Five candidates ghost. One signs.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'startup-high': {
+      knowledge: {
+        command: './review_skip_org.sh',
+        flavor: 'Skip your skip. Trust your VP. They\'ll quit anyway.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './prep_roadshow.sh',
+        flavor: 'Five cities, five days, one pitch. Memorize the breath marks.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './advise_portfolio_co.sh',
+        flavor: 'Two hours, no fee. You call them "investments."',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './recruit_board_member.sh',
+        flavor: 'Decline twelve LinkedIn DMs daily. Politely.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+
+    // ── PhD ───────────────────────────────────────────────────────────────
+    'phd-low': {
+      knowledge: {
+        command: './read_seminal_paper.sh',
+        flavor: 'Three days. Eight pages. You missed the point.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './ta_intro_cs.sh',
+        flavor: 'A hundred CS50 problem sets. Caffeine intensifies.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './run_experiment.sh',
+        flavor: 'Cluster\'s down. Try again. Try again. Try again.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './apply_for_fellowship.sh',
+        flavor: 'Re-skin last year\'s proposal. Pray.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'phd-mid': {
+      knowledge: {
+        command: './teach_grad_seminar.sh',
+        flavor: 'Five students. Three were on Slack the whole time.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './adjunct_evening_college.sh',
+        flavor: '$3K per course. Ninety-minute drive each way.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './write_paper.sh',
+        flavor: "Citation forty-seven doesn't say what you said it says.",
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './apply_to_neurips.sh',
+        flavor: 'Reviewer 2 is back. You can tell by the tone.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'phd-high': {
+      knowledge: {
+        command: './advise_grad_student.sh',
+        flavor: 'They have questions. You have answers. They\'re different.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './give_keynote.sh',
+        flavor: 'Travel reimbursed. Honorarium: $2K. Worth it.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './write_textbook.sh',
+        flavor: 'Twelve chapters. Three years. Fourteen copies sold.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './recommend_postdoc.sh',
+        flavor: "Strong letter. They'll get the position. You'll lose them.",
+        rewardLabel: '+{n} Application',
+      },
+    },
+
+    // ── Upwork ────────────────────────────────────────────────────────────
+    'upwork-low': {
+      knowledge: {
+        command: './read_brief.sh',
+        flavor: '"Make me a website like Amazon. Budget fifty dollars."',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './bid_on_gig.sh',
+        flavor: 'Burn 16 Connects. Get auto-rejected. Burn 16 more.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './fix_clients_code.sh',
+        flavor: 'Their last freelancer used jQuery in 2025. You sigh.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './update_profile_bio.sh',
+        flavor: "Add the word 'passionate' for the third time.",
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'upwork-mid': {
+      knowledge: {
+        command: './prepare_proposal.sh',
+        flavor: 'Cover letter. Portfolio links. The CSV they asked for.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './complete_top_rated_gig.sh',
+        flavor: 'Deliver. Upwork takes ten percent. Smile in the review.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './build_template_library.sh',
+        flavor: 'Reuse the WordPress theme. Charge full price.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './pitch_long_term_client.sh',
+        flavor: '"Looking forward to a multi-year engagement." They\'ll churn in 60 days.',
+        rewardLabel: '+{n} Application',
+      },
+    },
+    'upwork-high': {
+      knowledge: {
+        command: './record_course_module.sh',
+        flavor: 'Forty minutes. Three takes. One usable.',
+        rewardLabel: '+{n} Knowledge',
+      },
+      money: {
+        command: './sell_one_more_course.sh',
+        flavor: '$497. Bypasses the platform tax. That\'s the whole pitch.',
+        rewardLabel: '+${n}',
+      },
+      research: {
+        command: './poach_subcontractor.sh',
+        flavor: '"Quick coffee?" They say yes. They always say yes.',
+        rewardLabel: '+{n} Research',
+      },
+      applications: {
+        command: './run_email_funnel.sh',
+        flavor: '37,000 subscribers. Twenty-three actually open.',
+        rewardLabel: '+{n} Application',
+      },
+    },
   },
 
   // Other sections populated in later sessions:
