@@ -117,3 +117,48 @@ export function createHire(track, rng = Math.random) {
     hiredAt: Date.now(),
   };
 }
+
+/**
+ * Maximum level a hire can reach. Hardcoded for v1.
+ */
+export const MAX_HIRE_LEVEL = 5;
+
+/**
+ * Level-up cost: scales geometrically. L1→L2 = base, L2→L3 = 2×, L3→L4 = 4×, L4→L5 = 8×.
+ */
+const LEVEL_UP_BASE_COSTS = {
+  faang:   { money: 2500, knowledge: 50 },
+  startup: { influence: 80, equity: 40 },
+  phd:     { research: 200, influence: 25 },
+  upwork:  { money: 800 },
+};
+
+export function getLevelUpCost(track, currentLevel) {
+  if (currentLevel >= MAX_HIRE_LEVEL) return null;
+  const base = LEVEL_UP_BASE_COSTS[track] || {};
+  const factor = Math.pow(2, currentLevel - 1);
+  const cost = {};
+  for (const [c, amount] of Object.entries(base)) {
+    cost[c] = amount * factor;
+  }
+  return cost;
+}
+
+/**
+ * Poach cost: 3× the cost of a fresh hire at the current team size. Arrives at level 3.
+ */
+export function getPoachCost(track, currentHireCount) {
+  const base = getHireCost(track, currentHireCount);
+  const cost = {};
+  for (const [c, amount] of Object.entries(base)) {
+    cost[c] = amount * 3;
+  }
+  return cost;
+}
+
+export function createPoachedHire(track, rng = Math.random) {
+  const hire = createHire(track, rng);
+  hire.level = 3;
+  hire.poached = true;
+  return hire;
+}

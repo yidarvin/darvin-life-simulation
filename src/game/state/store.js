@@ -11,7 +11,15 @@ import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { getSwapCost, getTargetRank } from '../../data/swapTopology';
 import { EVENTS_BY_ID, pickEligibleEvent, nextEventDelayMs } from '../../data/events';
-import { createHire, getHireCost, getHiresCap } from '../../data/hires';
+import {
+  createHire,
+  createPoachedHire,
+  getHireCost,
+  getHiresCap,
+  getLevelUpCost,
+  getPoachCost,
+  MAX_HIRE_LEVEL,
+} from '../../data/hires';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -837,6 +845,94 @@ export const useGameStore = create((set, get) => ({
     }
 
     const hire = createHire(state.career.currentTrack);
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(cost)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      career: { ...state.career, hires: [...state.career.hires, hire] },
+    });
+    debouncedSave(get, set);
+    return { ok: true, hire };
+  },
+
+  /**
+   * Pay to advance a hire from level L to L+1. Caps at MAX_HIRE_LEVEL.
+   */
+  levelUpHire(hireId) {
+    const state = get();
+    const hire = state.career.hires.find((h) => h.id === hireId);
+    if (!hire) return { ok: false, reason: 'not_found' };
+    if (hire.level >= MAX_HIRE_LEVEL) return { ok: false, reason: 'max_level' };
+
+    const cost = getLevelUpCost(state.career.currentTrack, hire.level);
+    if (!cost) return { ok: false, reason: 'no_cost' };
+    if (!canAfford(state.currencies, cost)) {
+      return { ok: false, reason: 'insufficient_currency', cost };
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(cost)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    const nextHires = state.career.hires.map((h) =>
+      h.id === hireId ? { ...h, level: h.level + 1 } : h,
+    );
+
+    set({
+      currencies: nextCurrencies,
+      career: { ...state.career, hires: nextHires },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Remove a hire from the team. No cost, no refund. Cleans up team memberships.
+   */
+  fireHire(hireId) {
+    const state = get();
+    const hire = state.career.hires.find((h) => h.id === hireId);
+    if (!hire) return { ok: false, reason: 'not_found' };
+
+    set({
+      career: {
+        ...state.career,
+        hires: state.career.hires.filter((h) => h.id !== hireId),
+        teams: state.career.teams.map((t) => ({
+          ...t,
+          memberHireIds: (t.memberHireIds || []).filter((id) => id !== hireId),
+        })),
+      },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Hire a poached candidate — 3× normal cost but arrives at level 3. Same cap as hireSomeone.
+   */
+  poachSomeone() {
+    const state = get();
+    if (state.stage !== 'career' || !state.career.currentTrack) {
+      return { ok: false, reason: 'not_in_career' };
+    }
+    if (state.career.rank < 5) {
+      return { ok: false, reason: 'rank_locked' };
+    }
+    const cap = getHiresCap(state.career.rank);
+    if (state.career.hires.length >= cap) {
+      return { ok: false, reason: 'cap_reached', cap };
+    }
+    const cost = getPoachCost(state.career.currentTrack, state.career.hires.length);
+    if (!canAfford(state.currencies, cost)) {
+      return { ok: false, reason: 'insufficient_currency', cost };
+    }
+
+    const hire = createPoachedHire(state.career.currentTrack);
     const nextCurrencies = { ...state.currencies };
     for (const [c, amount] of Object.entries(cost)) {
       nextCurrencies[c] -= amount;
