@@ -1,76 +1,31 @@
 import { useGameStore } from '../../game/state/store';
 import { Panel } from '../shared/Panel';
 import { CurrencyValue } from '../shared/CurrencyValue';
+import { unlockedCurrencies } from '../../utils/gating';
 
 /**
  * Currencies displayed in the HUD, in their unlock order.
- * Each currency has a visibility predicate: only render the cell when unlocked.
- *
- * Unlock rules (from CURRENCY_SPEC.md):
- *   knowledge   → always visible (freshman onward)
- *   money       → visible from sophomore year onward
- *   research    → visible from junior year onward
- *   applications→ visible from senior year onward
- *   influence   → visible after internship complete (stage !== 'undergrad')
- *   equity      → visible after job offer (career.currentTrack !== null)
+ * Visibility is computed via `unlockedCurrencies` (see src/utils/gating.js).
  */
 const CURRENCY_CELLS = [
-  {
-    key: 'knowledge',
-    emoji: '🧠',
-    label: 'Knowledge',
-    visible: () => true,
-  },
-  {
-    key: 'money',
-    emoji: '💵',
-    label: 'Money',
-    money: true,
-    visible: (s) => isAtLeastYear(s.year, 'sophomore') || s.stage !== 'undergrad',
-  },
-  {
-    key: 'research',
-    emoji: '📄',
-    label: 'Research',
-    visible: (s) => isAtLeastYear(s.year, 'junior') || s.stage !== 'undergrad',
-  },
-  {
-    key: 'applications',
-    emoji: '📨',
-    label: 'Applications',
-    visible: (s) => isAtLeastYear(s.year, 'senior') || s.stage !== 'undergrad',
-  },
-  {
-    key: 'influence',
-    emoji: '🌟',
-    label: 'Influence',
-    visible: (s) => s.stage !== 'undergrad' && s.stage !== 'internship',
-  },
-  {
-    key: 'equity',
-    emoji: '🏛️',
-    label: 'Equity',
-    visible: (s) => s.career.currentTrack !== null,
-  },
+  { key: 'knowledge',    emoji: '🧠',  label: 'Knowledge' },
+  { key: 'money',        emoji: '💵',  label: 'Money', money: true },
+  { key: 'research',     emoji: '📄',  label: 'Research' },
+  { key: 'applications', emoji: '📨',  label: 'Applications' },
+  { key: 'influence',    emoji: '🌟',  label: 'Influence' },
+  { key: 'equity',       emoji: '🏛️',  label: 'Equity' },
 ];
-
-const YEAR_ORDER = ['freshman', 'sophomore', 'junior', 'senior'];
-
-function isAtLeastYear(currentYear, targetYear) {
-  return YEAR_ORDER.indexOf(currentYear) >= YEAR_ORDER.indexOf(targetYear);
-}
 
 /**
  * HUD panel: live currency display.
  */
 export function HUD() {
-  // Snapshot of fields needed for visibility (these don't change per tick).
   const year = useGameStore((s) => s.year);
   const stage = useGameStore((s) => s.stage);
   const currentTrack = useGameStore((s) => s.career.currentTrack);
 
-  const stateForVisibility = { year, stage, career: { currentTrack } };
-  const visibleCells = CURRENCY_CELLS.filter((c) => c.visible(stateForVisibility));
+  const unlocked = unlockedCurrencies({ year, stage, career: { currentTrack } });
+  const visibleCells = CURRENCY_CELLS.filter((c) => unlocked.has(c.key));
 
   return (
     <Panel title="[ Status HUD ]">
