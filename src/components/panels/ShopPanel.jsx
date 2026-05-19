@@ -14,8 +14,14 @@ export function ShopPanel() {
   const stage = useGameStore((s) => s.stage);
   const owned = useGameStore((s) => s.shop.owned);
 
+  // Pre-internship: hide internship-gated items entirely. Sophomore→junior requires
+  // the internship event, so once year >= junior we know the player has been through it
+  // (even though `stage` flips back to 'undergrad' after `finishInternship`).
+  const preInternship = stage === 'undergrad' && (year === 'freshman' || year === 'sophomore');
+
   const visible = SHOP_ITEMS.filter((item) => {
     if (owned[item.id]) return false;
+    if (item.lockedUntilInternship && preInternship) return false;
     if (stage !== 'undergrad') return true;
     return !item.unlocksAtYear || isAtLeastYear(year, item.unlocksAtYear);
   });

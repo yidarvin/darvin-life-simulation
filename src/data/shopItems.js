@@ -1,8 +1,9 @@
 /**
  * Undergrad shop items. Career-tier items (rank-1+ generators, hires, etc.) come in later sessions.
  *
- * Items with `lockedUntilInternship: true` are visible but unbuyable during undergrad —
- * they're previews of what passive generation will look like post-internship.
+ * Items with `lockedUntilInternship: true` are hidden from the shop until the player has
+ * completed the summer internship (i.e., reached junior year). The shop filter in
+ * ShopPanel.jsx handles the gating; the buy guard in store.js mirrors it as a defense.
  */
 export const SHOP_ITEMS = [
   // ── Knowledge multipliers ─────────────────────────────────────────────

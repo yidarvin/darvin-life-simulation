@@ -9,17 +9,12 @@ import { canAfford, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
  */
 export function ShopItem({ item }) {
   const currencies = useGameStore((s) => s.currencies);
-  const stage = useGameStore((s) => s.stage);
   const buyShopItem = useGameStore((s) => s.buyShopItem);
 
-  const isLocked = item.lockedUntilInternship && stage === 'undergrad';
   const affordable = canAfford(currencies, item.cost);
 
-  const state = isLocked ? 'locked' : affordable ? 'affordable' : 'unaffordable';
-  const clickable = state === 'affordable';
-
   const handleClick = () => {
-    if (!clickable) return;
+    if (!affordable) return;
     buyShopItem(item.id);
   };
 
@@ -27,12 +22,11 @@ export function ShopItem({ item }) {
     <button
       type="button"
       onClick={handleClick}
-      disabled={!clickable}
+      disabled={!affordable}
       className={clsx(
         'w-full flex items-center gap-4 p-3 border transition-colors text-left',
-        state === 'locked' && 'border-phosphor-faint bg-bg-deep opacity-50 cursor-not-allowed',
-        state === 'unaffordable' && 'border-phosphor-faint bg-bg-deep cursor-not-allowed',
-        state === 'affordable' &&
+        !affordable && 'border-phosphor-faint bg-bg-deep cursor-not-allowed',
+        affordable &&
           'border-phosphor bg-bg-deep cursor-pointer hover:bg-[#11201d] active:scale-[0.99]',
       )}
     >
@@ -49,21 +43,14 @@ export function ShopItem({ item }) {
       </div>
 
       <div className="flex flex-col items-end gap-1 shrink-0">
-        {state === 'locked' && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-phosphor-dim border border-phosphor-faint px-2 py-1 max-w-[140px] text-center leading-tight">
-            internship required
-          </span>
-        )}
-        {!isLocked && (
-          <div
-            className={clsx(
-              'font-mono text-[10px] tabular-nums',
-              affordable ? 'text-phosphor-bright' : 'text-phosphor-dim',
-            )}
-          >
-            {formatCost(item.cost)}
-          </div>
-        )}
+        <div
+          className={clsx(
+            'font-mono text-[10px] tabular-nums',
+            affordable ? 'text-phosphor-bright' : 'text-phosphor-dim',
+          )}
+        >
+          {formatCost(item.cost)}
+        </div>
       </div>
     </button>
   );

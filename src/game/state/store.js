@@ -384,7 +384,11 @@ export const useGameStore = create((set, get) => ({
     if (state.shop.owned[itemId]) {
       return false;
     }
-    if (item.lockedUntilInternship && state.stage === 'undergrad') {
+    if (
+      item.lockedUntilInternship &&
+      state.stage === 'undergrad' &&
+      (state.year === 'freshman' || state.year === 'sophomore')
+    ) {
       return false;
     }
     if (!canAfford(state.currencies, item.cost)) {
