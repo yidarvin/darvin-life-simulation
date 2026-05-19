@@ -7,7 +7,10 @@
  * Reverse direction (cost 3):
  *   FAANG → PhD, Startup → FAANG, PhD → Startup
  *
- * Upwork: -1 to enter (voluntarily), -2 to exit (climb back out).
+ * Upwork: -1 to enter (voluntarily), -4 to exit (climbing out is brutal).
+ *
+ * Swaps are gated by `currentRank > swapCost` — you must be senior enough
+ * to fully absorb the rank drop and still land at rank 1 or higher.
  *
  * Forced Upwork entry (from senior-year job offer failure) does NOT use this matrix —
  * it skips the gauntlet and lands at rank 1 directly (handled in session 15's forceUpwork).
@@ -29,9 +32,9 @@ export const SWAP_COSTS = {
     upwork: 1,
   },
   upwork: {
-    faang: 2,
-    startup: 2,
-    phd: 2,
+    faang: 4,
+    startup: 4,
+    phd: 4,
   },
 };
 
@@ -48,4 +51,19 @@ export function getSwapCost(fromTrack, toTrack) {
  */
 export function getTargetRank(currentRank, swapCost) {
   return Math.max(1, currentRank - swapCost);
+}
+
+/**
+ * Minimum rank required to swap out without bottoming out below rank 1.
+ * Equal to swapCost + 1 — you must land at rank 1 or higher after the drop.
+ */
+export function getRequiredRank(swapCost) {
+  return swapCost + 1;
+}
+
+/**
+ * @returns {boolean} true if the player is senior enough to fully absorb the rank drop.
+ */
+export function canAffordSwap(currentRank, swapCost) {
+  return currentRank > swapCost;
 }

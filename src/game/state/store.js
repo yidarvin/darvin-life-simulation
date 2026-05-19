@@ -9,7 +9,7 @@ import { copy } from '../../data/copy';
 import { CAREER_TRACKS, getEffectiveMultiplier } from '../../data/careerTracks';
 import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
-import { getSwapCost, getTargetRank } from '../../data/swapTopology';
+import { getSwapCost, getTargetRank, canAffordSwap } from '../../data/swapTopology';
 import { EVENTS_BY_ID, pickEligibleEvent, nextEventDelayMs } from '../../data/events';
 import {
   createHire,
@@ -940,6 +940,9 @@ export const useGameStore = create((set, get) => ({
     const swapCost = getSwapCost(state.career.currentTrack, targetTrack);
     if (swapCost === null) {
       return { ok: false, reason: 'invalid_target' };
+    }
+    if (!canAffordSwap(state.career.rank, swapCost)) {
+      return { ok: false, reason: 'rank_too_low' };
     }
     const targetRank = getTargetRank(state.career.rank, swapCost);
 

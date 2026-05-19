@@ -38,11 +38,21 @@ Players can swap tracks mid-run. Each swap costs rank drop — the amount depend
 | FAANG → Upwork | −1 rank | "I'm going freelance" |
 | Startup → Upwork | −1 rank | "The startup didn't make it" |
 | PhD → Upwork | −1 rank | "Couldn't get tenure" |
-| Upwork → FAANG | −2 ranks | Climbing out is harder |
-| Upwork → Startup | −2 ranks | Same |
-| Upwork → PhD | −2 ranks | Same |
+| Upwork → FAANG | −4 ranks | Climbing out is brutal |
+| Upwork → Startup | −4 ranks | Same |
+| Upwork → PhD | −4 ranks | Same |
 
-Rank cannot drop below 1. If math would put you at rank 0 or below, clamp to 1.
+### Swap rank gate
+
+Swaps require `currentRank > swapCost` — you must be senior enough to absorb the full rank drop and still land at rank 1 or higher. Locked swaps surface in the UI as disabled cards with a "requires rank N+" hint.
+
+| Cost | Minimum rank required to swap |
+|---|---|
+| 1 | Rank 2+ |
+| 3 | Rank 4+ (e.g. PhD → Startup) |
+| 4 | Rank 5+ (Upwork → anything) |
+
+Rank cannot drop below 1. With the gate above, math will never put you below 1 from a voluntary swap; clamp remains as a safety net.
 
 ### Voluntary entry to Upwork: the 5-dialogue gauntlet
 
