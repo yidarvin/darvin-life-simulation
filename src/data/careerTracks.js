@@ -1,7 +1,8 @@
 import { getSpecMultiplier } from './specializations';
 import { getBurnoutMultiplier } from '../utils/burnout';
 import { SHOP_ITEMS_BY_ID } from './shopItems';
-import { PHD_ENDOWMENTS } from './endgameMechanics';
+import { PHD_ENDOWMENTS, UPWORK_COURSES } from './endgameMechanics';
+import { getHireTeamMultiplier } from '../utils/teams';
 
 /**
  * Canonical career-track data.
@@ -359,4 +360,51 @@ export function getEffectivePerSecond(state, currency) {
   if (total <= 0) return 0;
   const multiplier = getEffectiveMultiplier(state, currency);
   return total * multiplier;
+}
+
+/**
+ * Per-second contribution from all hires for `currency`, multiplied (track ×
+ * spec × alloc × burnout) and team-bonused. Matches the math the tick loop
+ * applies — used purely for display.
+ */
+function getHiresPerSecond(state, currency) {
+  if (state?.stage !== 'career') return 0;
+  const hires = state.career?.hires;
+  if (!hires || hires.length === 0) return 0;
+  const teams = state.career.teams;
+  const multiplier = getEffectiveMultiplier(state, currency);
+  let total = 0;
+  for (const hire of hires) {
+    const rate = hire.rates?.[currency] ?? 0;
+    if (rate <= 0) continue;
+    const teamMult = getHireTeamMultiplier(teams, hire.id);
+    total += rate * hire.level * teamMult * multiplier;
+  }
+  return total;
+}
+
+/**
+ * Net per-second accumulation across every passive source — for the HUD rate
+ * display. Includes shop perSecond items, PhD endowments, hire generation, and
+ * the active Upwork course; mirrors the Upwork 10% tax so the number matches
+ * what the player actually sees credited.
+ *
+ * Money on Upwork: taxable sources are taxed at 10%; the course is tax-free.
+ */
+export function getTotalPerSecond(state, currency) {
+  if (!state) return 0;
+  const taxable = getEffectivePerSecond(state, currency) + getHiresPerSecond(state, currency);
+  const isUpwork = state.career?.currentTrack === 'upwork';
+  let total = currency === 'money' && isUpwork ? taxable * 0.9 : taxable;
+
+  if (currency === 'money' && state.stage === 'career' && state.upwork?.activeCourse) {
+    const courseData = UPWORK_COURSES.find((c) => c.id === state.upwork.activeCourse.courseId);
+    if (courseData) {
+      const elapsedSec = (Date.now() - state.upwork.activeCourse.startedAt) / 1000;
+      if (elapsedSec < courseData.durationSec) {
+        total += courseData.moneyRate;
+      }
+    }
+  }
+  return total;
 }
