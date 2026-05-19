@@ -42,7 +42,15 @@ export const copy = {
 
   // Other sections populated in later sessions:
   shop: [],
-  modals: {},
+  modals: {
+    yearTransition: {
+      title: 'End of {currentYear} year',
+      bodyTemplate:
+        'You survived. {currentYear}-year transcript: a few off-by-ones, several cans of cold brew, {flavor}\n\nNext: {nextYear} year. Unlocking {unlocks}.',
+      confirmLabel: 'Continue',
+      cancelLabel: 'Stay a while',
+    },
+  },
   gauntlet: [],
   specialization: {},
   tooltips: {},

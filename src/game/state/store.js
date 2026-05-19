@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { initialState } from './initialState';
 import { save, clear } from './persistence';
 import { SHOP_ITEMS_BY_ID } from '../../data/shopItems';
+import { YEAR_TRANSITIONS } from '../../data/yearTransitions';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -165,6 +166,45 @@ export const useGameStore = create((set, get) => ({
     set(next);
     debouncedSave(get, set);
     return true;
+  },
+
+  /**
+   * Attempt to advance the player to the next year.
+   *
+   * Returns one of:
+   *   { ok: true }                                   — advanced successfully
+   *   { ok: false, reason: 'requires_event', event } — needs internship / job offer (sessions 14, 15)
+   *   { ok: false, reason: 'insufficient_currency' } — thresholds not met
+   *   { ok: false, reason: 'no_transition' }         — somehow called from a stage with no transition
+   */
+  tryAdvanceYear() {
+    const state = get();
+    if (state.stage !== 'undergrad') {
+      return { ok: false, reason: 'no_transition' };
+    }
+    const transition = YEAR_TRANSITIONS[state.year];
+    if (!transition) {
+      return { ok: false, reason: 'no_transition' };
+    }
+    if (transition.requiresEvent) {
+      return { ok: false, reason: 'requires_event', event: transition.requiresEvent };
+    }
+    if (!canAfford(state.currencies, transition.threshold)) {
+      return { ok: false, reason: 'insufficient_currency' };
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(transition.threshold)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      year: transition.nextYear,
+      stage: transition.nextStage,
+    });
+    debouncedSave(get, set);
+    return { ok: true };
   },
 
   /**

@@ -4,13 +4,15 @@ import { Footer } from './components/Footer';
 import { HUD } from './components/panels/HUD';
 import { ActionsPanel } from './components/panels/ActionsPanel';
 import { ShopPanel } from './components/panels/ShopPanel';
+import { YearProgressPanel } from './components/panels/YearProgressPanel';
 
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 12 — shop wired" />
+      <Header version="v0.0" stage="session 13 — year transitions" />
       <HUD />
       <ActionsPanel />
+      <YearProgressPanel />
       <ShopPanel />
       <Footer />
     </AppShell>
