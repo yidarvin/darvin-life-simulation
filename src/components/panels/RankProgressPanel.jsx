@@ -64,7 +64,7 @@ export function RankProgressPanel() {
               <div className="text-phosphor-dim text-[11px] uppercase tracking-wide">
                 {CURRENCY_EMOJI[currency]} {CURRENCY_NAMES[currency]}
               </div>
-              <ProgressBar value={value} max={target} />
+              <ProgressBar value={value} max={target} successOnComplete />
               <div className="text-phosphor tabular-nums text-right text-[11px]">
                 <CurrencyValue value={value} money={currency === 'money'} size="sm" /> /{' '}
                 <CurrencyValue value={target} money={currency === 'money'} size="sm" />

@@ -58,7 +58,7 @@ export function YearProgressPanel() {
             return (
               <div key={currency} className="grid grid-cols-[170px_1fr_120px] gap-3 items-center text-[12px]">
                 <div className="text-phosphor-dim text-[11px] uppercase tracking-wide">{labelText}</div>
-                <ProgressBar value={value} max={target} />
+                <ProgressBar value={value} max={target} successOnComplete />
                 <div className="text-phosphor tabular-nums text-right text-[11px]">
                   <CurrencyValue value={value} money={currency === 'money'} size="sm" /> /{' '}
                   <CurrencyValue value={target} money={currency === 'money'} size="sm" />
