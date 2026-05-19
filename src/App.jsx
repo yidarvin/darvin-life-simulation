@@ -27,7 +27,7 @@ import { WellnessFlow } from './components/events/WellnessFlow';
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 27 — burnout + annual review" />
+      <Header version="v0.1" stage="Barely working prototype.  Ready to ship." />
       <HUD />
       <ActionsPanel />
       <BurnoutPanel />
