@@ -11,6 +11,15 @@ export function RankUpFlow() {
 
 function RankUpModal({ payload }) {
   const closeModal = useGameStore((s) => s.closeModal);
+  const openModal = useGameStore((s) => s.openModal);
+
+  const onConfirm = () => {
+    if (payload.isEndgame) {
+      openModal('endgame_reached', { track: payload.track });
+    } else {
+      closeModal();
+    }
+  };
 
   const title = formatCopy(copy.modals.rankUp.title, { rankLabel: payload.rankLabel });
   const costSummary = formatCostSummary(payload.cost);
@@ -24,9 +33,9 @@ function RankUpModal({ payload }) {
     <Modal
       open
       title={title}
-      actions={[{ label: copy.modals.rankUp.confirmLabel, onClick: closeModal, variant: 'primary' }]}
+      actions={[{ label: copy.modals.rankUp.confirmLabel, onClick: onConfirm, variant: 'primary' }]}
       dismissible
-      onClose={closeModal}
+      onClose={onConfirm}
     >
       {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
     </Modal>

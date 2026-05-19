@@ -12,17 +12,19 @@ import { RankProgressPanel } from './components/panels/RankProgressPanel';
 import { InfluenceAllocationPanel } from './components/panels/InfluenceAllocationPanel';
 import { HirePanel } from './components/panels/HirePanel';
 import { TeamsPanel } from './components/panels/TeamsPanel';
+import { EndgamePanel } from './components/panels/EndgamePanel';
 import { SwapPanel } from './components/panels/SwapPanel';
 import { InternshipFlow } from './components/events/InternshipFlow';
 import { JobOfferFlow } from './components/events/JobOfferFlow';
 import { RankUpFlow } from './components/events/RankUpFlow';
 import { SwapFlow } from './components/events/SwapFlow';
 import { RandomEventFlow } from './components/events/RandomEventFlow';
+import { EndgameFlow } from './components/events/EndgameFlow';
 
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 22 — hire individuals" />
+      <Header version="v0.0" stage="session 25 — rank 7 endgames" />
       <HUD />
       <ActionsPanel />
       <YearProgressPanel />
@@ -33,6 +35,7 @@ export default function App() {
       <InfluenceAllocationPanel />
       <HirePanel />
       <TeamsPanel />
+      <EndgamePanel />
       <SwapPanel />
       <ShopPanel />
       <Footer />
@@ -41,6 +44,7 @@ export default function App() {
       <RankUpFlow />
       <SwapFlow />
       <RandomEventFlow />
+      <EndgameFlow />
     </AppShell>
   );
 }

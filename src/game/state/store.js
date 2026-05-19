@@ -22,6 +22,12 @@ import {
 } from '../../data/hires';
 import { canAfford } from '../../utils/currency';
 import { getHireTeamMultiplier, newTeamId, MAX_TEAMS, MAX_TEAM_SIZE } from '../../utils/teams';
+import {
+  FAANG_INITIATIVES,
+  PHD_ENDOWMENTS,
+  UPWORK_COURSES,
+  getCurrentExitPrice,
+} from '../../data/endgameMechanics';
 
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 500;
@@ -170,11 +176,36 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
+    // Upwork active course (rank 7+ Upwork endgame). TAX-FREE money generation.
+    let upworkPatch = null;
+    if (s.stage === 'career' && s.upwork.activeCourse) {
+      const courseData = UPWORK_COURSES.find((c) => c.id === s.upwork.activeCourse.courseId);
+      if (courseData) {
+        const elapsedSec = (Date.now() - s.upwork.activeCourse.startedAt) / 1000;
+        if (elapsedSec >= courseData.durationSec) {
+          upworkPatch = { ...s.upwork, activeCourse: null };
+        } else {
+          const earningsThisTick = courseData.moneyRate * effectiveDt;
+          nextCurrencies.money = (nextCurrencies.money || 0) + earningsThisTick;
+          currenciesChanged = true;
+          upworkPatch = {
+            ...s.upwork,
+            courseSales: s.upwork.courseSales + earningsThisTick,
+            activeCourse: {
+              ...s.upwork.activeCourse,
+              totalEarned: s.upwork.activeCourse.totalEarned + earningsThisTick,
+            },
+          };
+        }
+      }
+    }
+
     // 4. Compose single set() call.
     const patch = {};
     if (currenciesChanged) patch.currencies = nextCurrencies;
     if (internshipPatch) patch.internship = internshipPatch;
     if (eventsPatch) patch.events = eventsPatch;
+    if (upworkPatch) patch.upwork = upworkPatch;
 
     // Modal precedence: internship event > random event (can't both apply in practice;
     // random events only fire in career stage, internship lives in its own stage).
@@ -650,9 +681,19 @@ export const useGameStore = create((set, get) => ({
     const newRank = currentRank + 1;
     const trackData = CAREER_TRACKS[track];
 
+    const isFirstEndgameForTrack =
+      newRank === 7 && !state.endgames.reached.some((e) => e.track === track);
+    const nextEndgames = isFirstEndgameForTrack
+      ? {
+          ...state.endgames,
+          reached: [...state.endgames.reached, { track, achievedAt: Date.now() }],
+        }
+      : state.endgames;
+
     set({
       currencies: nextCurrencies,
       career: { ...state.career, rank: newRank },
+      endgames: nextEndgames,
       ui: {
         ...state.ui,
         activeModal: {
@@ -661,6 +702,8 @@ export const useGameStore = create((set, get) => ({
             rankLabel: trackData.rankLabels[newRank],
             flavor: trackData.rankFlavor[newRank],
             cost,
+            isEndgame: isFirstEndgameForTrack,
+            track,
           },
         },
       },
@@ -1048,6 +1091,135 @@ export const useGameStore = create((set, get) => ({
       },
     });
     debouncedSave(get, set);
+  },
+
+  /**
+   * Launch a FAANG Fellow initiative. One-shot, repeatable. Pays out the reward immediately.
+   */
+  launchFaangInitiative(initiativeId) {
+    const state = get();
+    if (state.career.currentTrack !== 'faang' || state.career.rank < 7) {
+      return { ok: false, reason: 'not_at_endgame' };
+    }
+    const initiative = FAANG_INITIATIVES.find((i) => i.id === initiativeId);
+    if (!initiative) return { ok: false, reason: 'unknown_initiative' };
+    if (!canAfford(state.currencies, initiative.cost)) {
+      return { ok: false, reason: 'insufficient_currency' };
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(initiative.cost)) {
+      nextCurrencies[c] -= amount;
+    }
+    for (const [c, amount] of Object.entries(initiative.reward)) {
+      nextCurrencies[c] = (nextCurrencies[c] || 0) + amount;
+    }
+
+    set({ currencies: nextCurrencies });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Activate a PhD endowment. One-time per endowment ID. Permanent perSecond boost.
+   */
+  activatePhdEndowment(endowmentId) {
+    const state = get();
+    if (state.career.currentTrack !== 'phd' || state.career.rank < 7) {
+      return { ok: false, reason: 'not_at_endgame' };
+    }
+    const endowment = PHD_ENDOWMENTS.find((e) => e.id === endowmentId);
+    if (!endowment) return { ok: false, reason: 'unknown' };
+    if (state.career.phdEndowments?.includes(endowmentId)) {
+      return { ok: false, reason: 'already_active' };
+    }
+    if (!canAfford(state.currencies, endowment.cost)) {
+      return { ok: false, reason: 'insufficient_currency' };
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(endowment.cost)) {
+      nextCurrencies[c] -= amount;
+    }
+    const nextPerSecond = { ...state.perSecond };
+    for (const [c, rate] of Object.entries(endowment.perSecondBoost)) {
+      nextPerSecond[c] = (nextPerSecond[c] || 0) + rate;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      perSecond: nextPerSecond,
+      career: {
+        ...state.career,
+        phdEndowments: [...(state.career.phdEndowments || []), endowmentId],
+      },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Sell N units of Equity at the current exit price. Money is added TAX-FREE.
+   */
+  sellEquity(equityAmount) {
+    const state = get();
+    if (state.career.currentTrack !== 'startup' || state.career.rank < 7) {
+      return { ok: false, reason: 'not_at_endgame' };
+    }
+    if (equityAmount <= 0) return { ok: false, reason: 'invalid_amount' };
+    if (state.currencies.equity < equityAmount) {
+      return { ok: false, reason: 'insufficient_equity' };
+    }
+
+    const price = getCurrentExitPrice();
+    const moneyGained = Math.floor(equityAmount * price);
+
+    set({
+      currencies: {
+        ...state.currencies,
+        equity: state.currencies.equity - equityAmount,
+        money: state.currencies.money + moneyGained,
+      },
+    });
+    debouncedSave(get, set);
+    return { ok: true, moneyGained };
+  },
+
+  /**
+   * Launch an Upwork course. Sets state.upwork.activeCourse — tick handles generation + completion.
+   */
+  launchUpworkCourse(courseId) {
+    const state = get();
+    if (state.career.currentTrack !== 'upwork' || state.career.rank < 7) {
+      return { ok: false, reason: 'not_at_endgame' };
+    }
+    if (state.upwork.activeCourse) {
+      return { ok: false, reason: 'course_already_active' };
+    }
+    const course = UPWORK_COURSES.find((c) => c.id === courseId);
+    if (!course) return { ok: false, reason: 'unknown_course' };
+    if (!canAfford(state.currencies, course.cost)) {
+      return { ok: false, reason: 'insufficient_currency' };
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(course.cost)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      upwork: {
+        ...state.upwork,
+        activeCourse: {
+          courseId,
+          startedAt: Date.now(),
+          totalEarned: 0,
+        },
+      },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
   },
 
   /**

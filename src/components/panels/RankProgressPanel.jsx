@@ -36,7 +36,7 @@ export function RankProgressPanel() {
             {trackData.endgame.label}
           </div>
           <div className="text-phosphor-dim text-[11px] italic">
-            You&apos;re at the top of the track. Endgame mechanics arrive in session 25.
+            Top of the {trackData.label} track. See the endgame panel below.
           </div>
         </div>
       </Panel>

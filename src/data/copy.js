@@ -132,6 +132,25 @@ export const copy = {
         'You traded {costSummary} for the rank-up.\n\n{flavor}',
       confirmLabel: 'Acknowledged',
     },
+    endgameReached: {
+      faang: {
+        title: 'Distinguished Fellow',
+        body: 'Your name is now a section in the company\'s official engineering ladder doc.\n\nThree product orgs build on your former proposals. Two of those projects are quietly winding down. One won an industry award you\'ve already forgotten you received.\n\nYou have reached the top of the FAANG track.',
+      },
+      startup: {
+        title: '$1B paper valuation',
+        body: 'The IPO bell has rung. Your equity vested. The stock is up 12% on day one and down 30% by month three.\n\nYour cofounder has gone full-time on their podcast. Your investors have moved to their next bet.\n\nYou can stop checking Hacker News for posts about you now. You won\'t, but you can.\n\nYou have reached the top of the Startup track.',
+      },
+      phd: {
+        title: 'The Named Chair',
+        body: 'An endowed chair. Three of your former students are now junior faculty. Your h-index is high enough that your name appears in undergraduate textbooks.\n\nYou answer email twice a year.\n\nYou have reached the top of the PhD track.',
+      },
+      upwork: {
+        title: 'Platform Influencer',
+        body: 'You\'ve made it to the top of the Upwork freelancer ladder. Your YouTube subscribers think you\'re "an inspiration."\n\nYour former clients have started ghosting you the same way they used to.\n\nThe cycle is complete.',
+      },
+      confirmLabel: 'Acknowledge — keep playing',
+    },
     swapConfirm: {
       title: 'Swap track?',
       bodyTemplate:

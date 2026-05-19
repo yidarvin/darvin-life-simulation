@@ -49,6 +49,7 @@ export function initialState() {
         research: 0,
       },
       swapHistory: [],
+      phdEndowments: [],
     },
     upwork: {
       connects: 0,
@@ -56,6 +57,7 @@ export function initialState() {
       platformTaxLifetime: 0,
       courseSales: 0,
       connectsLastRegen: null,
+      activeCourse: null,
     },
     internship: {
       active: false,
