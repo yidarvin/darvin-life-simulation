@@ -466,7 +466,7 @@ export const copy = {
     swapConfirm: {
       title: 'Swap track?',
       bodyTemplate:
-        'Leaving {currentTrackLabel} ({currentRankLabel}) for {targetTrackLabel} will drop you to rank {targetRank} ({targetRankLabel}).\n\nThis costs {swapCost} rank(s). Your specialization, hires, teams, and Influence allocation reset.',
+        'Leaving {currentTrackLabel} ({currentRankLabel}) for {targetTrackLabel} will drop you to rank {targetRank} ({targetRankLabel}).\n\nThis costs {swapCost} rank(s) and {applicationsCost} 📨 applications. Your specialization, hires, teams, and Influence allocation reset.',
       confirmLabel: 'Confirm swap',
       cancelLabel: 'Stay',
     },
@@ -492,7 +492,7 @@ export const copy = {
       {
         title: 'Are you sure?',
         bodyTemplate:
-          'Voluntarily leaving {currentTrackLabel} for Upwork will drop you to rank {targetRank} ({targetRankLabel}) and add three new mechanics: Connects, Job Success Score, and a 10% platform tax.\n\nThis is reversible — you can swap back at -2 ranks later — but you\'ll be rebuilding from the bottom.',
+          'Voluntarily leaving {currentTrackLabel} for Upwork will drop you to rank {targetRank} ({targetRankLabel}), burn {applicationsCost} 📨 applications, and add three new mechanics: Connects, Job Success Score, and a 10% platform tax.\n\nThis is reversible — you can swap back later — but you\'ll be rebuilding from the bottom.',
         continueLabel: 'Continue',
         cancelLabel: 'Cancel',
       },

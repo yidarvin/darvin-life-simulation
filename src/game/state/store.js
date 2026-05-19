@@ -16,7 +16,7 @@ import {
 } from '../../data/careerTracks';
 import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
-import { getSwapCost, getTargetRank, canAffordSwap } from '../../data/swapTopology';
+import { getSwapCost, getTargetRank, canAffordSwap, getSwapApplicationsCost } from '../../data/swapTopology';
 import { EVENTS_BY_ID, pickEligibleEvent, nextEventDelayMs } from '../../data/events';
 import {
   createHire,
@@ -958,6 +958,10 @@ export const useGameStore = create((set, get) => ({
     if (!canAffordSwap(state.career.rank, swapCost)) {
       return { ok: false, reason: 'rank_too_low' };
     }
+    const applicationsCost = getSwapApplicationsCost(state.career.rank, swapCost);
+    if ((state.currencies.applications ?? 0) < applicationsCost) {
+      return { ok: false, reason: 'not_enough_applications' };
+    }
     const targetRank = getTargetRank(state.career.rank, swapCost);
 
     const fromTrackData = CAREER_TRACKS[state.career.currentTrack];
@@ -966,6 +970,7 @@ export const useGameStore = create((set, get) => ({
       fromTrack: state.career.currentTrack,
       targetTrack,
       swapCost,
+      applicationsCost,
       targetRank,
       currentTrackLabel: fromTrackData.label,
       currentRankLabel: fromTrackData.rankLabels[state.career.rank],
@@ -1021,6 +1026,15 @@ export const useGameStore = create((set, get) => ({
     const state = get();
     const isUpwork = targetTrack === 'upwork';
 
+    const swapCost = getSwapCost(state.career.currentTrack, targetTrack);
+    const applicationsCost = swapCost === null
+      ? 0
+      : getSwapApplicationsCost(state.career.rank, swapCost);
+    if ((state.currencies.applications ?? 0) < applicationsCost) {
+      console.warn('confirmSwap: insufficient applications, aborting');
+      return;
+    }
+
     const nextCareer = {
       currentTrack: targetTrack,
       rank: targetRank,
@@ -1040,8 +1054,17 @@ export const useGameStore = create((set, get) => ({
       ],
     };
 
+    const nextCurrencies = {
+      ...state.currencies,
+      applications: (state.currencies.applications ?? 0) - applicationsCost,
+    };
+    if (targetTrack === 'startup' && targetRank === 1) {
+      nextCurrencies.equity = (state.currencies.equity ?? 0) + STARTUP_FOUNDER_GRANT;
+    }
+
     const patch = {
       career: nextCareer,
+      currencies: nextCurrencies,
       ui: { ...state.ui, activeModal: null },
     };
 
@@ -1051,13 +1074,6 @@ export const useGameStore = create((set, get) => ({
         connects: 40,
         jss: 100,
         connectsLastRegen: Date.now(),
-      };
-    }
-
-    if (targetTrack === 'startup' && targetRank === 1) {
-      patch.currencies = {
-        ...state.currencies,
-        equity: (state.currencies.equity ?? 0) + STARTUP_FOUNDER_GRANT,
       };
     }
 

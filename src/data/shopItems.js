@@ -106,15 +106,6 @@ export const SHOP_ITEMS = [
     lockedUntilInternship: true,
   },
   {
-    id: 'career_center',
-    name: '🎓 Career Center Newsletter',
-    flavor: 'Daily emails from 14 startups you have never heard of.',
-    effect: { kind: 'perSecond', currency: 'applications', amount: 0.5 },
-    cost: { applications: 3, money: 200 },
-    unlocksAtYear: 'senior',
-    lockedUntilInternship: true,
-  },
-  {
     id: 'ra_position',
     name: '🧪 RA Position',
     flavor: 'Run experiments your PI does not fully understand.',

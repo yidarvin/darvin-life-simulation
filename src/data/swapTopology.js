@@ -67,3 +67,17 @@ export function getRequiredRank(swapCost) {
 export function canAffordSwap(currentRank, swapCost) {
   return currentRank > swapCost;
 }
+
+/**
+ * Applications required to swap. Scales with both swap cost and current rank:
+ * a senior swap (cost 3) at rank 7 is a real investment; an early cycle swap is cheap.
+ *
+ * Formula: swapCost × currentRank × 25
+ *   rank 2, cost 1 →   50 apps
+ *   rank 5, cost 1 →  125 apps
+ *   rank 7, cost 3 →  525 apps
+ *   rank 7, cost 4 →  700 apps  (Upwork exit)
+ */
+export function getSwapApplicationsCost(currentRank, swapCost) {
+  return swapCost * currentRank * 25;
+}
