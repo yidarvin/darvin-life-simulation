@@ -5,11 +5,32 @@ const CURRENT_VERSION = 1;
 
 /**
  * Migration registry. Each entry takes the previous schema and returns the next.
- * Add a new entry when CURRENT_VERSION bumps.
+ *
+ * Schema v1 is stable as of session 29. Bump CURRENT_VERSION and register a
+ * migration here whenever the persisted shape changes in a way that can't be
+ * handled by the deep-merge default-fill in `mergeWithDefaults` — i.e., when
+ * a field is renamed, removed, restructured, or needs computed defaults from
+ * other fields. Pure additive fields don't need a migration: the merge will
+ * fill them in from initialState().
+ *
+ * Example for v1 → v2:
+ *
+ *   const CURRENT_VERSION = 2;
+ *   const migrations = {
+ *     2: (s) => ({
+ *       ...s,
+ *       version: 2,
+ *       career: {
+ *         ...s.career,
+ *         // Example: split `specialization` (string) into `{ id }` object.
+ *         specialization: typeof s.career.specialization === 'string'
+ *           ? { id: s.career.specialization }
+ *           : s.career.specialization,
+ *       },
+ *     }),
+ *   };
  */
-const migrations = {
-  // Future: 2: (s) => ({ ...s, version: 2, /* changes */ }),
-};
+const migrations = {};
 
 /**
  * Serialize a slice of state for persistence. Strips transient fields (e.g., `ui.*`).

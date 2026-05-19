@@ -705,6 +705,11 @@ export const useGameStore = create((set, get) => ({
 
   /**
    * Begin the senior-year job offer flow. Scores the player's prep and decides outcome.
+   *
+   * IMPORTANT: cost is NOT deducted here. It rides along the modal chain as
+   * `pendingCost` and is finally charged in chooseTrack/forceUpwork. This keeps
+   * the flow recoverable — if the player reloads mid-modal, transient ui state
+   * resets and currencies are untouched, so they can re-trigger from the panel.
    */
   beginJobOffer() {
     const state = get();
@@ -717,11 +722,6 @@ export const useGameStore = create((set, get) => ({
     if (!canAfford(state.currencies, cost)) {
       console.warn('beginJobOffer: thresholds not met');
       return;
-    }
-
-    const nextCurrencies = { ...state.currencies };
-    for (const [c, amount] of Object.entries(cost)) {
-      nextCurrencies[c] -= amount;
     }
 
     const weights = copy.modals.jobOfferResults.scoringWeights;
@@ -738,7 +738,6 @@ export const useGameStore = create((set, get) => ({
     const success = score >= copy.modals.jobOfferResults.scoringThreshold;
 
     set({
-      currencies: nextCurrencies,
       ui: {
         ...state.ui,
         activeModal: {
@@ -748,11 +747,11 @@ export const useGameStore = create((set, get) => ({
             score,
             applicationsSubmitted: applicationsAtStart,
             influenceAccumulated: influence,
+            pendingCost: cost,
           },
         },
       },
     });
-    debouncedSave(get, set);
   },
 
   /**
@@ -766,7 +765,17 @@ export const useGameStore = create((set, get) => ({
       return;
     }
     const state = get();
+    const pendingCost = state.ui.activeModal?.payload?.pendingCost;
+
+    const nextCurrencies = { ...state.currencies };
+    if (pendingCost) {
+      for (const [c, amount] of Object.entries(pendingCost)) {
+        nextCurrencies[c] = (nextCurrencies[c] ?? 0) - amount;
+      }
+    }
+
     set({
+      currencies: nextCurrencies,
       stage: 'career',
       year: null,
       career: {
@@ -812,7 +821,17 @@ export const useGameStore = create((set, get) => ({
    */
   forceUpwork() {
     const state = get();
+    const pendingCost = state.ui.activeModal?.payload?.pendingCost;
+
+    const nextCurrencies = { ...state.currencies };
+    if (pendingCost) {
+      for (const [c, amount] of Object.entries(pendingCost)) {
+        nextCurrencies[c] = (nextCurrencies[c] ?? 0) - amount;
+      }
+    }
+
     set({
+      currencies: nextCurrencies,
       stage: 'career',
       year: null,
       career: {

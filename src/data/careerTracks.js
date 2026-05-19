@@ -170,6 +170,7 @@ export function getTrackMultiplier(track, currency, rank) {
  * Components reading multipliers for display should also use this.
  */
 export function getEffectiveMultiplier(state, currency) {
+  if (!state || !state.career) return 1;
   const trackMult = getTrackMultiplier(state.career.currentTrack, currency, state.career.rank);
   const specMult = getSpecMultiplier(
     state.career.currentTrack,

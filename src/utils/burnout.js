@@ -15,6 +15,7 @@ export const VACATION_COST = 1000;
 export const VACATION_CLEAR = 50;
 
 export function getBurnoutMultiplier(burnout) {
+  if (!Number.isFinite(burnout)) return 1;
   if (burnout >= BURNOUT_COLLAPSE) return 0;
   if (burnout >= BURNOUT_BURNED) return 0.5;
   if (burnout >= BURNOUT_TIRED) return 0.8;

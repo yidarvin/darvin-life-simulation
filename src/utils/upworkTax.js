@@ -10,7 +10,10 @@ export const UPWORK_TAX_RATE = 0.10;
  * Tax only applies when on the Upwork track.
  */
 export function splitTax(grossAmount, isUpwork) {
-  if (!isUpwork || grossAmount <= 0) {
+  if (!Number.isFinite(grossAmount) || grossAmount <= 0) {
+    return { net: 0, tax: 0 };
+  }
+  if (!isUpwork) {
     return { net: grossAmount, tax: 0 };
   }
   const tax = grossAmount * UPWORK_TAX_RATE;

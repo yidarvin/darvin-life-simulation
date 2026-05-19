@@ -34,11 +34,12 @@ function JobOfferResultsModal({ payload }) {
 
   const onConfirm = () => {
     if (payload.success) {
-      openModal('track_choice');
+      openModal('track_choice', { pendingCost: payload.pendingCost });
     } else {
       openModal('forced_upwork', {
         responses: Math.floor(payload.applicationsSubmitted * 0.3),
         interviews: Math.floor(payload.applicationsSubmitted * 0.05),
+        pendingCost: payload.pendingCost,
       });
     }
   };

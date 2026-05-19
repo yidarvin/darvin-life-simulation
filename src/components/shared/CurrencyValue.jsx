@@ -11,7 +11,8 @@ import clsx from 'clsx';
  * @param {string} [className]
  */
 export function CurrencyValue({ value, money = false, emoji, size = 'md', bright = false, className }) {
-  const formatted = (money ? '$' : '') + Math.floor(value).toLocaleString();
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const formatted = (money ? '$' : '') + Math.floor(safeValue).toLocaleString();
   const sizeClasses = {
     sm: 'font-mono text-[13px]',
     md: 'font-mono text-[14px]',
