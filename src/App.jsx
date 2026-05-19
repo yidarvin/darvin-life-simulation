@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useGameStore } from './game/state/store';
 import { Panel } from './components/shared/Panel';
-import { Modal } from './components/shared/Modal';
 import { ActionButton } from './components/shared/ActionButton';
 import { Button } from './components/shared/Button';
-import { ProgressBar } from './components/shared/ProgressBar';
 import { CurrencyValue } from './components/shared/CurrencyValue';
 
 export default function App() {
-  const [modalOpen, setModalOpen] = useState(false);
+  const currencies = useGameStore((s) => s.currencies);
+  const click = useGameStore((s) => s.click);
+  const devMode = useGameStore((s) => s.meta.devMode);
+  const toggleDevMode = useGameStore((s) => s.toggleDevMode);
+  const reset = useGameStore((s) => s.reset);
+  const perSecondKnowledge = useGameStore((s) => s.perSecond.knowledge);
+  const setPassive = useGameStore((s) => s._setPassive);
 
   return (
     <main className="min-h-screen max-w-[920px] mx-auto p-8">
@@ -19,28 +23,29 @@ export default function App() {
           Life is a Simulation
         </h1>
         <p className="mt-3 text-xs tracking-[0.16em] uppercase text-phosphor-dim">
-          v0.0 // atoms preview · session 06
+          v0.0 // store wired · session 07
         </p>
       </header>
 
       <Panel title="[ Status HUD ]">
         <div className="grid grid-cols-4 gap-4 text-center">
-          <div>
-            <CurrencyValue value={1234} emoji="🧠" size="xl" bright />
-            <div className="text-[10px] tracking-[0.18em] uppercase text-phosphor-dim mt-1.5">Knowledge</div>
-          </div>
-          <div>
-            <CurrencyValue value={5876} money emoji="💵" size="xl" bright />
-            <div className="text-[10px] tracking-[0.18em] uppercase text-phosphor-dim mt-1.5">Money</div>
-          </div>
-          <div>
-            <CurrencyValue value={42} emoji="📄" size="xl" bright />
-            <div className="text-[10px] tracking-[0.18em] uppercase text-phosphor-dim mt-1.5">Research</div>
-          </div>
-          <div>
-            <CurrencyValue value={17} emoji="📨" size="xl" bright />
-            <div className="text-[10px] tracking-[0.18em] uppercase text-phosphor-dim mt-1.5">Applications</div>
-          </div>
+          {[
+            ['knowledge', '🧠', 'Knowledge'],
+            ['money', '💵', 'Money'],
+            ['research', '📄', 'Research'],
+            ['applications', '📨', 'Applications'],
+          ].map(([key, emoji, label]) => (
+            <div key={key}>
+              <CurrencyValue
+                value={currencies[key]}
+                money={key === 'money'}
+                emoji={emoji}
+                size="xl"
+                bright
+              />
+              <div className="text-[10px] tracking-[0.18em] uppercase text-phosphor-dim mt-1.5">{label}</div>
+            </div>
+          ))}
         </div>
       </Panel>
 
@@ -50,71 +55,49 @@ export default function App() {
             command="./do_pset.sh"
             flavor="Spend three hours hunting an off-by-one error."
             reward="+1 Knowledge"
-            onClick={() => {}}
+            onClick={() => click('knowledge')}
           />
           <ActionButton
             command="./beg_advisor.sh"
             flavor="Wash glassware. Maybe get a coauthor credit. Maybe not."
             reward="+1 Research"
-            onClick={() => {}}
+            onClick={() => click('research')}
           />
           <ActionButton
             command="./ta_section.sh"
             flavor="Explain recursion to five students who 'kind of get it.'"
             reward="+$5 Money"
-            onClick={() => {}}
+            onClick={() => click('money')}
           />
           <ActionButton
             command="./fire_off_cv.sh"
             flavor="Customize a cover letter. The recruiter will not read it."
             reward="+1 Application"
-            onClick={() => {}}
-            disabled
+            onClick={() => click('applications')}
           />
         </div>
       </Panel>
 
-      <Panel title="[ Progress ]">
-        <div className="space-y-2">
-          {[
-            { label: '🧠 Knowledge', value: 30, max: 100 },
-            { label: '💵 Money', value: 500, max: 500, money: true },
-            { label: '📄 Research', value: 12, max: 20 },
-            { label: '📨 Applications', value: 9, max: 30 },
-          ].map((row) => (
-            <div key={row.label} className="grid grid-cols-[130px_1fr_100px] gap-3.5 items-center text-[12px]">
-              <div className="text-phosphor-dim text-[11px] uppercase tracking-wide">{row.label}</div>
-              <ProgressBar value={row.value} max={row.max} />
-              <div className="text-phosphor tabular-nums text-right">
-                <CurrencyValue value={row.value} money={row.money} size="sm" /> /{' '}
-                <CurrencyValue value={row.max} money={row.money} size="sm" />
-              </div>
-            </div>
-          ))}
+      <Panel title="[ Tick Test ]">
+        <div className="flex items-center gap-4 text-[12px] text-phosphor-dim">
+          <span>Passive Knowledge rate:</span>
+          <span className="text-phosphor tabular-nums">+{perSecondKnowledge.toFixed(1)}/sec</span>
+          <Button onClick={() => setPassive('knowledge', perSecondKnowledge + 1)}>+1/sec</Button>
+          <Button onClick={() => setPassive('knowledge', 0)}>Off</Button>
         </div>
+        <p className="text-[11px] text-phosphor-dim italic mt-3">
+          Click +1/sec, then watch the Knowledge counter tick. Toggle devmode in the footer to see 10x speedup.
+        </p>
       </Panel>
 
       <footer className="mt-7 flex justify-center items-center gap-3 text-phosphor-dim text-[11px]">
-        <Button onClick={() => setModalOpen(true)}>Open modal</Button>
-        <Button variant="active" onClick={() => {}}>Devmode: 10x</Button>
-        <span>saved</span>
+        <Button onClick={() => { if (window.confirm('Reset?')) reset(); }}>
+          Reset
+        </Button>
+        <Button variant={devMode ? 'active' : 'normal'} onClick={toggleDevMode}>
+          Devmode: {devMode ? '10x' : '1x'}
+        </Button>
       </footer>
-
-      <Modal
-        open={modalOpen}
-        title="Atoms working"
-        actions={[
-          { label: 'Acknowledge', onClick: () => setModalOpen(false), variant: 'primary' },
-        ]}
-        onClose={() => setModalOpen(false)}
-      >
-        <p>
-          You&apos;re looking at the Panel, ActionButton, Button, ProgressBar, CurrencyValue, and Modal atoms.
-        </p>
-        <p>
-          If any of these look broken, fix here. Future sessions assume these work.
-        </p>
-      </Modal>
     </main>
   );
 }
