@@ -2,13 +2,14 @@ import { useGameStore } from '../../game/state/store';
 import { Modal } from '../shared/Modal';
 import { copy, formatCopy } from '../../data/copy';
 import { getBurnoutMultiplier, VACATION_COST } from '../../utils/burnout';
-import { CURRENCY_EMOJI } from '../../utils/currency';
+// import { CURRENCY_EMOJI } from '../../utils/currency'; // used by disabled AnnualReviewModal
 
 export function WellnessFlow() {
   const activeModal = useGameStore((s) => s.ui.activeModal);
   if (!activeModal) return null;
   if (activeModal.kind === 'vacation_warning') return <VacationWarningModal />;
-  if (activeModal.kind === 'annual_review') return <AnnualReviewModal payload={activeModal.payload} />;
+  // Annual performance review disabled.
+  // if (activeModal.kind === 'annual_review') return <AnnualReviewModal payload={activeModal.payload} />;
   return null;
 }
 
@@ -44,37 +45,38 @@ function VacationWarningModal() {
   );
 }
 
-function AnnualReviewModal({ payload }) {
-  const dismissAnnualReview = useGameStore((s) => s.dismissAnnualReview);
-  const data = copy.modals.annualReview;
-
-  const body =
-    payload.outcome === 'success' ? data.bodySuccess
-    : payload.outcome === 'neutral' ? data.bodyNeutral
-    : data.bodyFailure;
-
-  const bonus =
-    payload.outcome === 'success' ? data.bonusSuccess
-    : payload.outcome === 'neutral' ? data.bonusNeutral
-    : null;
-
-  return (
-    <Modal
-      open
-      title={data.title}
-      actions={[{ label: data.confirmLabel, onClick: dismissAnnualReview, variant: 'primary' }]}
-      onClose={dismissAnnualReview}
-    >
-      <p>{body}</p>
-      {bonus && (
-        <p className="text-[11px] text-phosphor-dim mt-2">
-          Bonus: {Object.entries(bonus).map(([c, v]) => {
-            const prefix = c === 'money' ? '+$' : '+';
-            const emoji = c === 'money' ? '' : ` ${CURRENCY_EMOJI[c] || ''}`;
-            return `${prefix}${v.toLocaleString()}${emoji}`;
-          }).join('  ')}
-        </p>
-      )}
-    </Modal>
-  );
-}
+// Annual performance review disabled.
+// function AnnualReviewModal({ payload }) {
+//   const dismissAnnualReview = useGameStore((s) => s.dismissAnnualReview);
+//   const data = copy.modals.annualReview;
+//
+//   const body =
+//     payload.outcome === 'success' ? data.bodySuccess
+//     : payload.outcome === 'neutral' ? data.bodyNeutral
+//     : data.bodyFailure;
+//
+//   const bonus =
+//     payload.outcome === 'success' ? data.bonusSuccess
+//     : payload.outcome === 'neutral' ? data.bonusNeutral
+//     : null;
+//
+//   return (
+//     <Modal
+//       open
+//       title={data.title}
+//       actions={[{ label: data.confirmLabel, onClick: dismissAnnualReview, variant: 'primary' }]}
+//       onClose={dismissAnnualReview}
+//     >
+//       <p>{body}</p>
+//       {bonus && (
+//         <p className="text-[11px] text-phosphor-dim mt-2">
+//           Bonus: {Object.entries(bonus).map(([c, v]) => {
+//             const prefix = c === 'money' ? '+$' : '+';
+//             const emoji = c === 'money' ? '' : ` ${CURRENCY_EMOJI[c] || ''}`;
+//             return `${prefix}${v.toLocaleString()}${emoji}`;
+//           }).join('  ')}
+//         </p>
+//       )}
+//     </Modal>
+//   );
+// }
