@@ -90,6 +90,42 @@ export const copy = {
       returnOfferThreshold: 30,
       returnOfferBonus: { knowledge: 500, influence: 20 },
     },
+    jobOfferResults: {
+      titleSuccess: 'Offers in',
+      titleFailure: 'No offers',
+      bodyTemplateSuccess:
+        'You submitted {applications} applications across the cycle. Your internship return-offer counted as a fallback. Influence accumulated: {influence}.\n\nFinal offer-score: {score}. You have options.',
+      bodyTemplateFailure:
+        'You submitted {applications} applications across the cycle. Most went into the void. A few asked you to "stay in touch."\n\nFinal offer-score: {score}. The job market this year is "challenging." Time to go freelance.',
+      scoringThreshold: 20,
+      scoringWeights: { applications: 1, influence: 0.25, returnOffer: 8, knowledge: 0.005 },
+      confirmLabelSuccess: 'Pick a track',
+      confirmLabelFailure: 'Begin Upwork track',
+    },
+    trackChoice: {
+      title: 'Senior year — job offer',
+      bodyParagraphs: [
+        'Three tracks open up.',
+        '• FAANG — high salary, low ownership. Your name on a million org-chart squares.',
+        '• Startup — low salary, high equity. 60% chance of "liquidation event" being "we shut down."',
+        '• PhD — almost no salary. Your name on three papers.',
+        'Pick carefully. Swapping later costs ranks.',
+      ],
+      options: {
+        faang: 'FAANG',
+        startup: 'Startup',
+        phd: 'PhD',
+      },
+    },
+    forcedUpwork: {
+      title: 'No offer',
+      bodyParagraphs: [
+        'The job market this year is "challenging." Your applications collectively received {responses} responses, {interviews} interviews, and zero offers.',
+        'Time to go freelance. Welcome to Upwork.',
+        'Starting balance: 40 Connects, JSS 100%. You\'ll be fine. Probably.',
+      ],
+      confirmLabel: 'Begin Upwork track',
+    },
   },
   gauntlet: [],
   specialization: {},

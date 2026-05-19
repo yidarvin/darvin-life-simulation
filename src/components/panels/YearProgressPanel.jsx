@@ -71,6 +71,8 @@ export function YearProgressPanel() {
         {eventRequired ? (
           transition.requiresEvent === 'summer_internship' ? (
             <SummerInternshipTrigger ready={ready} />
+          ) : transition.requiresEvent === 'senior_year_job_offer' ? (
+            <SeniorYearJobOfferTrigger ready={ready} />
           ) : (
             <EventRequiredNotice event={transition.requiresEvent} ready={ready} />
           )
@@ -115,6 +117,24 @@ function SummerInternshipTrigger({ ready }) {
       )}
     >
       {ready ? 'Apply for summer internships' : 'Keep grinding (thresholds not met)'}
+    </button>
+  );
+}
+
+function SeniorYearJobOfferTrigger({ ready }) {
+  const beginJobOffer = useGameStore((s) => s.beginJobOffer);
+  return (
+    <button
+      onClick={() => beginJobOffer()}
+      disabled={!ready}
+      className={clsx(
+        'w-full py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',
+        ready
+          ? 'bg-bg-deep border-phosphor text-phosphor-bright cursor-pointer hover:bg-phosphor hover:text-bg'
+          : 'bg-bg-deep border-phosphor-faint text-phosphor-dim cursor-not-allowed',
+      )}
+    >
+      {ready ? 'Send out applications' : 'Keep grinding (thresholds not met)'}
     </button>
   );
 }

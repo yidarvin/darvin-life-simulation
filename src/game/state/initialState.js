@@ -65,6 +65,7 @@ export function initialState() {
       daysTotal: 90,
       eventSchedule: [],
       influenceAtStart: 0,
+      gotReturnOffer: false,
     },
     burnout: 0,
     annualReview: {

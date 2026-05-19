@@ -390,6 +390,110 @@ export const useGameStore = create((set, get) => ({
         daysTotal: 90,
         eventSchedule: [],
         influenceAtStart: 0,
+        gotReturnOffer: success,
+      },
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Begin the senior-year job offer flow. Scores the player's prep and decides outcome.
+   */
+  beginJobOffer() {
+    const state = get();
+    if (state.stage !== 'undergrad' || state.year !== 'senior') {
+      console.warn('beginJobOffer: only valid from senior undergrad');
+      return;
+    }
+
+    const cost = { knowledge: 1000, money: 1500, research: 50, applications: 10 };
+    if (!canAfford(state.currencies, cost)) {
+      console.warn('beginJobOffer: thresholds not met');
+      return;
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(cost)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    const weights = copy.modals.jobOfferResults.scoringWeights;
+    const applicationsAtStart = state.currencies.applications;
+    const influence = state.currencies.influence;
+    const knowledge = state.currencies.knowledge;
+    const hasReturnOffer = state.internship.gotReturnOffer;
+    const score = Math.floor(
+      applicationsAtStart * weights.applications
+        + influence * weights.influence
+        + knowledge * weights.knowledge
+        + (hasReturnOffer ? weights.returnOffer : 0),
+    );
+    const success = score >= copy.modals.jobOfferResults.scoringThreshold;
+
+    set({
+      currencies: nextCurrencies,
+      ui: {
+        ...state.ui,
+        activeModal: {
+          kind: 'job_offer_results',
+          payload: {
+            success,
+            score,
+            applicationsSubmitted: applicationsAtStart,
+            influenceAccumulated: influence,
+          },
+        },
+      },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Player accepted a track from the success modal. Set up career state.
+   *
+   * @param {'faang' | 'startup' | 'phd'} trackId
+   */
+  chooseTrack(trackId) {
+    if (!['faang', 'startup', 'phd'].includes(trackId)) {
+      console.warn('chooseTrack: invalid track', trackId);
+      return;
+    }
+    const state = get();
+    set({
+      stage: 'career',
+      year: null,
+      career: {
+        ...state.career,
+        currentTrack: trackId,
+        rank: 1,
+      },
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Player failed the job-offer event. Forced into Upwork — no 5-dialogue gauntlet
+   * (that's for voluntary entry only).
+   */
+  forceUpwork() {
+    const state = get();
+    set({
+      stage: 'career',
+      year: null,
+      career: {
+        ...state.career,
+        currentTrack: 'upwork',
+        rank: 1,
+      },
+      upwork: {
+        ...state.upwork,
+        connects: 40,
+        jss: 100,
+        platformTaxLifetime: 0,
+        courseSales: 0,
+        connectsLastRegen: Date.now(),
       },
       ui: { ...state.ui, activeModal: null },
     });

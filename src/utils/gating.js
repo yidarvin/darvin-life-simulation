@@ -34,7 +34,9 @@ export function unlockedCurrencies(state) {
   }
 
   if (stage !== 'undergrad') out.add('influence');
-  if (career?.currentTrack) out.add('equity');
+  if (career?.currentTrack === 'faang' || career?.currentTrack === 'startup') {
+    out.add('equity');
+  }
 
   return out;
 }
