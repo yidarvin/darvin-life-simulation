@@ -11,6 +11,7 @@ import { SPECIALIZATIONS } from '../../data/specializations';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { getSwapCost, getTargetRank } from '../../data/swapTopology';
 import { EVENTS_BY_ID, pickEligibleEvent, nextEventDelayMs } from '../../data/events';
+import { createHire, getHireCost, getHiresCap } from '../../data/hires';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -96,6 +97,17 @@ export const useGameStore = create((set, get) => ({
         const multiplier = getEffectiveMultiplier(s, c);
         nextCurrencies[c] += rate * effectiveDt * multiplier;
         currenciesChanged = true;
+      }
+    }
+
+    // Hire passive generation (rank 4+).
+    if (s.stage === 'career' && s.career.hires.length > 0) {
+      for (const hire of s.career.hires) {
+        for (const [c, rate] of Object.entries(hire.rates)) {
+          const multiplier = getEffectiveMultiplier(s, c);
+          nextCurrencies[c] = (nextCurrencies[c] || 0) + rate * hire.level * effectiveDt * multiplier;
+          currenciesChanged = true;
+        }
       }
     }
 
@@ -799,6 +811,43 @@ export const useGameStore = create((set, get) => ({
       },
     });
     debouncedSave(get, set);
+  },
+
+  /**
+   * Hire a random new team member for the current career track.
+   * Validates rank-4+, hire cap, and currency cost.
+   *
+   * @returns { ok: true, hire } | { ok: false, reason }
+   */
+  hireSomeone() {
+    const state = get();
+    if (state.stage !== 'career' || !state.career.currentTrack) {
+      return { ok: false, reason: 'not_in_career' };
+    }
+    if (state.career.rank < 4) {
+      return { ok: false, reason: 'rank_locked' };
+    }
+    const cap = getHiresCap(state.career.rank);
+    if (state.career.hires.length >= cap) {
+      return { ok: false, reason: 'cap_reached', cap };
+    }
+    const cost = getHireCost(state.career.currentTrack, state.career.hires.length);
+    if (!canAfford(state.currencies, cost)) {
+      return { ok: false, reason: 'insufficient_currency', cost };
+    }
+
+    const hire = createHire(state.career.currentTrack);
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(cost)) {
+      nextCurrencies[c] -= amount;
+    }
+
+    set({
+      currencies: nextCurrencies,
+      career: { ...state.career, hires: [...state.career.hires, hire] },
+    });
+    debouncedSave(get, set);
+    return { ok: true, hire };
   },
 
   /**
