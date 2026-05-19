@@ -132,6 +132,50 @@ export const copy = {
         'You traded {costSummary} for the rank-up.\n\n{flavor}',
       confirmLabel: 'Acknowledged',
     },
+    swapConfirm: {
+      title: 'Swap track?',
+      bodyTemplate:
+        'Leaving {currentTrackLabel} ({currentRankLabel}) for {targetTrackLabel} will drop you to rank {targetRank} ({targetRankLabel}).\n\nThis costs {swapCost} rank(s). Your specialization, hires, teams, and Influence allocation reset.',
+      confirmLabel: 'Confirm swap',
+      cancelLabel: 'Stay',
+    },
+    upworkGauntlet: [
+      {
+        title: 'Are you sure?',
+        bodyTemplate:
+          'Voluntarily leaving {currentTrackLabel} for Upwork will drop you to rank {targetRank} ({targetRankLabel}) and add three new mechanics: Connects, Job Success Score, and a 10% platform tax.\n\nThis is reversible — you can swap back at -2 ranks later — but you\'ll be rebuilding from the bottom.',
+        continueLabel: 'Continue',
+        cancelLabel: 'Cancel',
+      },
+      {
+        title: 'Just so we\'re clear',
+        bodyTemplate:
+          'Connects regenerate at 10 per day. Each gig application costs 10–16 Connects. Application acceptance rate is 5–10%.\n\nJob Success Score starts at 100% and drops on bad reviews. Below 90%, you lose Top Rated tier and its rate bonus.\n\nUpwork takes 10% of every gig you complete. That counter never resets.\n\nStill in?',
+        continueLabel: 'Yes',
+        cancelLabel: 'No',
+      },
+      {
+        title: 'One more thing',
+        bodyTemplate:
+          'Your LinkedIn title will read "Founder & CEO." You will not specify of what.\n\nPeople will assume your company has one employee. They will be correct.\n\nYou will start using the word "consulting" in conversation. You will not be able to stop.',
+        continueLabel: 'Acknowledged',
+        cancelLabel: 'Cancel',
+      },
+      {
+        title: 'We need to talk about money',
+        bodyTemplate:
+          'Your former colleagues will offer you "consulting" work at 30% of your old rate, then ghost you mid-project.\n\nThe IRS will become your closest pen pal. You will learn what a quarterly estimated tax payment is. You will pay it late.\n\nYour accountant — whom you do not yet have — will charge $400/hour to tell you what you already know.\n\nLast chance to back out.',
+        continueLabel: 'I want this',
+        cancelLabel: 'Cancel',
+      },
+      {
+        title: 'Fine',
+        bodyTemplate:
+          'Welcome to Upwork. Please upload a profile photo. We recommend something that looks like a hostage situation.\n\nYour starting balance: 40 Connects, $0, JSS 100%.\n\nGood luck out there.',
+        continueLabel: 'Begin',
+        // No cancelLabel — step 5 commits.
+      },
+    ],
   },
   gauntlet: [],
   specialization: {},

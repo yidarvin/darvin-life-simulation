@@ -8,6 +8,7 @@ import { buildEventSchedule, INTERNSHIP_EVENTS_BY_ID } from '../../data/internsh
 import { copy } from '../../data/copy';
 import { CAREER_TRACKS, getTrackMultiplier } from '../../data/careerTracks';
 import { getRankUpCost } from '../../data/rankUpCosts';
+import { getSwapCost, getTargetRank } from '../../data/swapTopology';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -553,6 +554,126 @@ export const useGameStore = create((set, get) => ({
     });
     debouncedSave(get, set);
     return { ok: true, newRank, cost, rankLabel: trackData.rankLabels[newRank], flavor: trackData.rankFlavor[newRank] };
+  },
+
+  /**
+   * Start a swap flow. Validates the target, looks up cost, opens the appropriate modal:
+   *   - For voluntary Upwork: opens the 5-step gauntlet
+   *   - For other tracks: opens the simple swap_confirm modal
+   *
+   * @param {'faang'|'startup'|'phd'|'upwork'} targetTrack
+   * @returns { ok: true } | { ok: false, reason }
+   */
+  trySwap(targetTrack) {
+    const state = get();
+    if (state.stage !== 'career' || !state.career.currentTrack) {
+      return { ok: false, reason: 'not_in_career' };
+    }
+    if (state.career.currentTrack === targetTrack) {
+      return { ok: false, reason: 'same_track' };
+    }
+    const swapCost = getSwapCost(state.career.currentTrack, targetTrack);
+    if (swapCost === null) {
+      return { ok: false, reason: 'invalid_target' };
+    }
+    const targetRank = getTargetRank(state.career.rank, swapCost);
+
+    const fromTrackData = CAREER_TRACKS[state.career.currentTrack];
+    const toTrackData = CAREER_TRACKS[targetTrack];
+    const payload = {
+      fromTrack: state.career.currentTrack,
+      targetTrack,
+      swapCost,
+      targetRank,
+      currentTrackLabel: fromTrackData.label,
+      currentRankLabel: fromTrackData.rankLabels[state.career.rank],
+      targetTrackLabel: toTrackData.label,
+      targetRankLabel: toTrackData.rankLabels[targetRank],
+    };
+
+    const kind = targetTrack === 'upwork' ? 'upwork_gauntlet' : 'swap_confirm';
+    const initialPayload = targetTrack === 'upwork' ? { ...payload, step: 1 } : payload;
+
+    set((s) => ({
+      ui: { ...s.ui, activeModal: { kind, payload: initialPayload } },
+    }));
+    return { ok: true };
+  },
+
+  /**
+   * Advance the gauntlet to the next step, or commit on step 5.
+   * Called from the gauntlet modal's Continue button.
+   */
+  advanceGauntlet() {
+    const state = get();
+    const modal = state.ui.activeModal;
+    if (!modal || modal.kind !== 'upwork_gauntlet') return;
+
+    const nextStep = modal.payload.step + 1;
+    if (nextStep > 5) {
+      get().confirmSwap(modal.payload.targetTrack, modal.payload.targetRank);
+      return;
+    }
+
+    set((s) => ({
+      ui: {
+        ...s.ui,
+        activeModal: { kind: 'upwork_gauntlet', payload: { ...modal.payload, step: nextStep } },
+      },
+    }));
+  },
+
+  /**
+   * Cancel the gauntlet (or any swap modal). Closes the modal without state change.
+   */
+  cancelSwap() {
+    set((s) => ({ ui: { ...s.ui, activeModal: null } }));
+  },
+
+  /**
+   * Commit a swap. Resets specialization, hires, teams, influence allocation.
+   * Logs to swapHistory. For Upwork, resets connects + JSS to starting values
+   * (but preserves cumulative tax + course sales).
+   */
+  confirmSwap(targetTrack, targetRank) {
+    const state = get();
+    const isUpwork = targetTrack === 'upwork';
+
+    const nextCareer = {
+      currentTrack: targetTrack,
+      rank: targetRank,
+      specialization: null,
+      hires: [],
+      teams: [],
+      influenceAllocation: { knowledge: 0, money: 0, research: 0 },
+      swapHistory: [
+        ...state.career.swapHistory,
+        {
+          from: state.career.currentTrack,
+          to: targetTrack,
+          atTimestamp: Date.now(),
+          rankBefore: state.career.rank,
+          rankAfter: targetRank,
+        },
+      ],
+    };
+
+    const patch = {
+      career: nextCareer,
+      ui: { ...state.ui, activeModal: null },
+    };
+
+    if (isUpwork) {
+      patch.upwork = {
+        ...state.upwork,
+        connects: 40,
+        jss: 100,
+        connectsLastRegen: Date.now(),
+      };
+    }
+
+    set(patch);
+    debouncedSave(get, set);
   },
 
   /**
