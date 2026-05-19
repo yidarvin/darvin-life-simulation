@@ -6,7 +6,8 @@ import { YEAR_TRANSITIONS } from '../../data/yearTransitions';
 import { pickRandomCompany } from '../../data/internshipCompanies';
 import { buildEventSchedule, INTERNSHIP_EVENTS_BY_ID } from '../../data/internshipEvents';
 import { copy } from '../../data/copy';
-import { getTrackMultiplier } from '../../data/careerTracks';
+import { CAREER_TRACKS, getTrackMultiplier } from '../../data/careerTracks';
+import { getRankUpCost } from '../../data/rankUpCosts';
 import { canAfford } from '../../utils/currency';
 
 let saveDebounceTimer = null;
@@ -502,6 +503,56 @@ export const useGameStore = create((set, get) => ({
       ui: { ...state.ui, activeModal: null },
     });
     debouncedSave(get, set);
+  },
+
+  /**
+   * Attempt to advance to the next rank on the current career track.
+   *
+   * Returns:
+   *   { ok: true, newRank, cost, rankLabel, flavor }       — advanced
+   *   { ok: false, reason: 'no_track' }                    — not in a career
+   *   { ok: false, reason: 'max_rank' }                    — already rank 7
+   *   { ok: false, reason: 'insufficient_currency', cost } — can't afford
+   */
+  tryRankUp() {
+    const state = get();
+    if (state.stage !== 'career' || !state.career.currentTrack) {
+      return { ok: false, reason: 'no_track' };
+    }
+    const track = state.career.currentTrack;
+    const currentRank = state.career.rank;
+    const cost = getRankUpCost(track, currentRank);
+    if (!cost) {
+      return { ok: false, reason: 'max_rank' };
+    }
+    if (!canAfford(state.currencies, cost)) {
+      return { ok: false, reason: 'insufficient_currency', cost };
+    }
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amount] of Object.entries(cost)) {
+      nextCurrencies[c] -= amount;
+    }
+    const newRank = currentRank + 1;
+    const trackData = CAREER_TRACKS[track];
+
+    set({
+      currencies: nextCurrencies,
+      career: { ...state.career, rank: newRank },
+      ui: {
+        ...state.ui,
+        activeModal: {
+          kind: 'rank_up',
+          payload: {
+            rankLabel: trackData.rankLabels[newRank],
+            flavor: trackData.rankFlavor[newRank],
+            cost,
+          },
+        },
+      },
+    });
+    debouncedSave(get, set);
+    return { ok: true, newRank, cost, rankLabel: trackData.rankLabels[newRank], flavor: trackData.rankFlavor[newRank] };
   },
 
   /**

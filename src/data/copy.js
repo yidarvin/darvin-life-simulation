@@ -126,6 +126,12 @@ export const copy = {
       ],
       confirmLabel: 'Begin Upwork track',
     },
+    rankUp: {
+      title: 'Promoted: {rankLabel}',
+      bodyTemplate:
+        'You traded {costSummary} for the rank-up.\n\n{flavor}',
+      confirmLabel: 'Acknowledged',
+    },
   },
   gauntlet: [],
   specialization: {},
