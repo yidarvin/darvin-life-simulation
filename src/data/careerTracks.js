@@ -180,7 +180,7 @@ export function getEffectiveMultiplier(state, currency) {
     currency,
   );
   const allocMult = getAllocMultiplier(state, currency);
-  const burnoutMult = getBurnoutMultiplier(state.burnout || 0);
+  const burnoutMult = getBurnoutMultiplier(state.burnout || 0, state.collapsed || false);
   return trackMult * specMult * allocMult * burnoutMult;
 }
 

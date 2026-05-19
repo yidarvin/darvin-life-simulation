@@ -59,6 +59,7 @@ export function initialState() {
       gotReturnOffer: false,
     },
     burnout: 0,
+    collapsed: false,
     annualReview: {
       lastFiredAt: null,
       snapshotsByCurrency: {},

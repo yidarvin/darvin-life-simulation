@@ -44,8 +44,12 @@ import {
 } from '../../utils/upworkTax';
 import {
   BURNOUT_BURNED,
+  BURNOUT_COLLAPSE,
+  BURNOUT_PER_CLICK,
+  BURNOUT_DECAY_PER_SEC,
   VACATION_COST,
   VACATION_CLEAR,
+  nextCollapsed,
 } from '../../utils/burnout';
 
 // Annual performance review disabled.
@@ -149,7 +153,15 @@ export const useGameStore = create((set, get) => ({
       nextCurrencies.influence = (nextCurrencies.influence || 0) + clickMultiplier;
     }
 
-    set({ currencies: nextCurrencies, upwork: nextUpwork });
+    const nextBurnout = Math.min(BURNOUT_COLLAPSE, state.burnout + BURNOUT_PER_CLICK);
+    const nextCollapsedFlag = nextCollapsed(state.collapsed, nextBurnout);
+
+    set({
+      currencies: nextCurrencies,
+      upwork: nextUpwork,
+      burnout: nextBurnout,
+      collapsed: nextCollapsedFlag,
+    });
     debouncedSave(get, set);
     return returnedAmount;
   },
@@ -338,9 +350,15 @@ export const useGameStore = create((set, get) => ({
       upworkPatch = { ...base, connects: newConnects };
     }
 
+    // Passive burnout decay — recovery while not actively clicking.
+    const decayedBurnout = Math.max(0, s.burnout - BURNOUT_DECAY_PER_SEC * effectiveDt);
+    const decayedCollapsedFlag = nextCollapsed(s.collapsed, decayedBurnout);
+
     // 5. Compose single set() call.
     const patch = {};
     if (currenciesChanged) patch.currencies = nextCurrencies;
+    if (decayedBurnout !== s.burnout) patch.burnout = decayedBurnout;
+    if (decayedCollapsedFlag !== s.collapsed) patch.collapsed = decayedCollapsedFlag;
     if (internshipPatch) patch.internship = internshipPatch;
     if (eventsPatch) patch.events = eventsPatch;
     if (upworkPatch) patch.upwork = upworkPatch;
@@ -610,6 +628,7 @@ export const useGameStore = create((set, get) => ({
     set({
       currencies: nextCurrencies,
       burnout: nextBurnout,
+      collapsed: nextCollapsed(state.collapsed, nextBurnout),
       upwork: nextUpwork,
       ui: { ...state.ui, activeModal: null },
     });
@@ -624,9 +643,11 @@ export const useGameStore = create((set, get) => ({
     if (state.currencies.money < VACATION_COST) {
       return { ok: false, reason: 'insufficient_money' };
     }
+    const postBurnout = Math.max(0, state.burnout - VACATION_CLEAR);
     set({
       currencies: { ...state.currencies, money: state.currencies.money - VACATION_COST },
-      burnout: Math.max(0, state.burnout - VACATION_CLEAR),
+      burnout: postBurnout,
+      collapsed: nextCollapsed(state.collapsed, postBurnout),
       ui: { ...state.ui, activeModal: null },
     });
     debouncedSave(get, set);

@@ -18,8 +18,9 @@ function VacationWarningModal() {
   const skipVacation = useGameStore((s) => s.skipVacation);
   const money = useGameStore((s) => s.currencies.money);
   const burnout = useGameStore((s) => s.burnout);
+  const collapsed = useGameStore((s) => s.collapsed);
 
-  const pct = Math.round(getBurnoutMultiplier(burnout) * 100);
+  const pct = Math.round(getBurnoutMultiplier(burnout, collapsed) * 100);
   const canAfford = money >= VACATION_COST;
 
   const data = copy.modals.vacationWarning;

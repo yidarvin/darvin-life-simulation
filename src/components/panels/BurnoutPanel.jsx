@@ -13,14 +13,15 @@ import {
 
 export function BurnoutPanel() {
   const burnout = useGameStore((s) => s.burnout);
+  const collapsed = useGameStore((s) => s.collapsed);
   const stage = useGameStore((s) => s.stage);
 
   if (stage !== 'career' && stage !== 'internship') return null;
 
   const value = Math.floor(burnout);
-  const mult = getBurnoutMultiplier(burnout);
-  const label = getBurnoutLabel(burnout);
-  const colorClass = getBurnoutColorClass(burnout);
+  const mult = getBurnoutMultiplier(burnout, collapsed);
+  const label = getBurnoutLabel(burnout, collapsed);
+  const colorClass = getBurnoutColorClass(burnout, collapsed);
   const pct = Math.round(mult * 100);
 
   return (
