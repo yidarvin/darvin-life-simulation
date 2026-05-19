@@ -5,7 +5,7 @@ import { ProgressBar } from '../shared/ProgressBar';
 import { CurrencyValue } from '../shared/CurrencyValue';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { CAREER_TRACKS } from '../../data/careerTracks';
-import { canAfford, CURRENCY_EMOJI } from '../../utils/currency';
+import { canAfford, getSpendableCurrencies, CURRENCY_EMOJI } from '../../utils/currency';
 
 const CURRENCY_NAMES = {
   knowledge: 'Knowledge',
@@ -21,6 +21,7 @@ export function RankProgressPanel() {
   const track = useGameStore((s) => s.career.currentTrack);
   const rank = useGameStore((s) => s.career.rank);
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const tryRankUp = useGameStore((s) => s.tryRankUp);
 
   if (stage !== 'career' || !track) return null;
@@ -43,7 +44,8 @@ export function RankProgressPanel() {
     );
   }
 
-  const ready = canAfford(currencies, cost);
+  const spendable = getSpendableCurrencies({ currencies, career: { influenceAllocation } });
+  const ready = canAfford(spendable, cost);
   const trackData = CAREER_TRACKS[track];
   const nextLabel = trackData.rankLabels[rank + 1];
 
@@ -58,7 +60,7 @@ export function RankProgressPanel() {
 
       <div className="space-y-2 mb-4">
         {Object.entries(cost).map(([currency, target]) => {
-          const value = currencies[currency] ?? 0;
+          const value = spendable[currency] ?? 0;
           return (
             <div key={currency} className="grid grid-cols-[120px_1fr_100px] sm:grid-cols-[150px_1fr_140px] gap-2 sm:gap-3 items-center text-[11px] sm:text-[12px]">
               <div className="text-phosphor-dim text-[11px] uppercase tracking-wide">

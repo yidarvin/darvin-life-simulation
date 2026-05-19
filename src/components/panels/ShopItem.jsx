@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { useGameStore } from '../../game/state/store';
-import { canAfford, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
+import { canAfford, getSpendableCurrencies, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
 
 /**
  * Single shop item row.
@@ -9,9 +9,13 @@ import { canAfford, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
  */
 export function ShopItem({ item }) {
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const buyShopItem = useGameStore((s) => s.buyShopItem);
 
-  const affordable = canAfford(currencies, item.cost);
+  const affordable = canAfford(
+    getSpendableCurrencies({ currencies, career: { influenceAllocation } }),
+    item.cost,
+  );
 
   const handleClick = () => {
     if (!affordable) return;

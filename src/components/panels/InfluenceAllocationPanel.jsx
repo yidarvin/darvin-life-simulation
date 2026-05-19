@@ -103,7 +103,7 @@ export function InfluenceAllocationPanel() {
       </div>
 
       <div className="text-phosphor-dim text-[10px] uppercase tracking-[0.14em] mt-3 text-center">
-        Earmarked, not spent. Caps at ×5.00 per bucket.
+        Allocated 🌟 is locked — only Available is spendable. Caps at ×5.00 per bucket.
       </div>
     </Panel>
   );

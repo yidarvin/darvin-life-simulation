@@ -11,7 +11,7 @@ import {
   getCurrentExitPrice,
 } from '../../data/endgameMechanics';
 import { CAREER_TRACKS } from '../../data/careerTracks';
-import { canAfford, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
+import { canAfford, getSpendableCurrencies, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
 
 export function EndgamePanel() {
   const stage = useGameStore((s) => s.stage);
@@ -35,7 +35,9 @@ export function EndgamePanel() {
 
 function FaangEndgame() {
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const launch = useGameStore((s) => s.launchFaangInitiative);
+  const spendable = getSpendableCurrencies({ currencies, career: { influenceAllocation } });
 
   return (
     <>
@@ -44,7 +46,7 @@ function FaangEndgame() {
       </div>
       <div className="space-y-2">
         {FAANG_INITIATIVES.map((init) => {
-          const can = canAfford(currencies, init.cost);
+          const can = canAfford(spendable, init.cost);
           return (
             <InitiativeRow
               key={init.id}
@@ -142,8 +144,10 @@ function StartupEndgame() {
 
 function PhdEndgame() {
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const endowments = useGameStore((s) => s.career.phdEndowments || []);
   const activate = useGameStore((s) => s.activatePhdEndowment);
+  const spendable = getSpendableCurrencies({ currencies, career: { influenceAllocation } });
 
   return (
     <>
@@ -153,7 +157,7 @@ function PhdEndgame() {
       <div className="space-y-2">
         {PHD_ENDOWMENTS.map((end) => {
           const owned = endowments.includes(end.id);
-          const can = !owned && canAfford(currencies, end.cost);
+          const can = !owned && canAfford(spendable, end.cost);
           return (
             <InitiativeRow
               key={end.id}
@@ -172,8 +176,10 @@ function PhdEndgame() {
 
 function UpworkEndgame() {
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const upwork = useGameStore((s) => s.upwork);
   const launch = useGameStore((s) => s.launchUpworkCourse);
+  const spendable = getSpendableCurrencies({ currencies, career: { influenceAllocation } });
   const activeCourse = upwork.activeCourse;
   const activeCourseData = activeCourse
     ? UPWORK_COURSES.find((c) => c.id === activeCourse.courseId)
@@ -198,7 +204,7 @@ function UpworkEndgame() {
 
       <div className="space-y-2 mt-3">
         {UPWORK_COURSES.map((course) => {
-          const can = !activeCourse && canAfford(currencies, course.cost);
+          const can = !activeCourse && canAfford(spendable, course.cost);
           return (
             <InitiativeRow
               key={course.id}

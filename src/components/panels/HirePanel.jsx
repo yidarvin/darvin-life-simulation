@@ -10,7 +10,7 @@ import {
   getPoachCost,
   MAX_HIRE_LEVEL,
 } from '../../data/hires';
-import { CURRENCY_EMOJI, canAfford, formatCost } from '../../utils/currency';
+import { CURRENCY_EMOJI, canAfford, getSpendableCurrencies, formatCost } from '../../utils/currency';
 
 export function HirePanel() {
   const stage = useGameStore((s) => s.stage);
@@ -18,20 +18,22 @@ export function HirePanel() {
   const track = useGameStore((s) => s.career.currentTrack);
   const hires = useGameStore((s) => s.career.hires);
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const hireSomeone = useGameStore((s) => s.hireSomeone);
   const poachSomeone = useGameStore((s) => s.poachSomeone);
 
   if (stage !== 'career' || !track || rank < 4) return null;
 
+  const spendable = getSpendableCurrencies({ currencies, career: { influenceAllocation } });
   const cap = getHiresCap(rank);
   const slotsRemaining = cap - hires.length;
 
   const hireCost = getHireCost(track, hires.length);
-  const canHire = slotsRemaining > 0 && canAfford(currencies, hireCost);
+  const canHire = slotsRemaining > 0 && canAfford(spendable, hireCost);
 
   const poachAvailable = rank >= 5;
   const poachCost = poachAvailable ? getPoachCost(track, hires.length) : null;
-  const canPoach = poachAvailable && slotsRemaining > 0 && canAfford(currencies, poachCost);
+  const canPoach = poachAvailable && slotsRemaining > 0 && canAfford(spendable, poachCost);
 
   return (
     <Panel title="[ Team ]">
@@ -93,6 +95,7 @@ function ActionPillButton({ disabled, onClick, children, tone = 'normal' }) {
 
 function HireRow({ hire, track, canManage }) {
   const currencies = useGameStore((s) => s.currencies);
+  const influenceAllocation = useGameStore((s) => s.career.influenceAllocation);
   const levelUpHire = useGameStore((s) => s.levelUpHire);
   const fireHire = useGameStore((s) => s.fireHire);
 
@@ -100,7 +103,9 @@ function HireRow({ hire, track, canManage }) {
 
   const isMaxLevel = hire.level >= MAX_HIRE_LEVEL;
   const levelUpCost = !isMaxLevel ? getLevelUpCost(track, hire.level) : null;
-  const canAffordLevelUp = levelUpCost && canAfford(currencies, levelUpCost);
+  const canAffordLevelUp =
+    levelUpCost &&
+    canAfford(getSpendableCurrencies({ currencies, career: { influenceAllocation } }), levelUpCost);
 
   const handleFire = () => setShowFireConfirm(true);
   const confirmFire = () => {

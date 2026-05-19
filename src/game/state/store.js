@@ -27,7 +27,7 @@ import {
   getPoachCost,
   MAX_HIRE_LEVEL,
 } from '../../data/hires';
-import { canAfford } from '../../utils/currency';
+import { canAfford, getSpendableCurrencies } from '../../utils/currency';
 import { getHireTeamMultiplier, newTeamId, MAX_TEAMS, MAX_TEAM_SIZE } from '../../utils/teams';
 import {
   FAANG_INITIATIVES,
@@ -414,7 +414,7 @@ export const useGameStore = create((set, get) => ({
     if (item.effect.kind === 'instant' && item.requiresRank && (state.career?.rank ?? 0) < item.requiresRank) {
       return false;
     }
-    if (!canAfford(state.currencies, item.cost)) {
+    if (!canAfford(getSpendableCurrencies(state), item.cost)) {
       return false;
     }
 
@@ -459,7 +459,7 @@ export const useGameStore = create((set, get) => ({
     if (transition.requiresEvent) {
       return { ok: false, reason: 'requires_event', event: transition.requiresEvent };
     }
-    if (!canAfford(state.currencies, transition.threshold)) {
+    if (!canAfford(getSpendableCurrencies(state), transition.threshold)) {
       return { ok: false, reason: 'insufficient_currency' };
     }
 
@@ -514,7 +514,7 @@ export const useGameStore = create((set, get) => ({
     // Sophomore→junior threshold from YEAR_TRANSITIONS (hardcoded to avoid circular import).
     const cost = { knowledge: 250, money: 300 };
 
-    if (!canAfford(state.currencies, cost)) {
+    if (!canAfford(getSpendableCurrencies(state), cost)) {
       console.warn('acceptInternship: thresholds not met');
       return;
     }
@@ -738,7 +738,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     const cost = { knowledge: 1000, money: 1500, research: 50, applications: 10 };
-    if (!canAfford(state.currencies, cost)) {
+    if (!canAfford(getSpendableCurrencies(state), cost)) {
       console.warn('beginJobOffer: thresholds not met');
       return;
     }
@@ -895,7 +895,7 @@ export const useGameStore = create((set, get) => ({
     if (!cost) {
       return { ok: false, reason: 'max_rank' };
     }
-    if (!canAfford(state.currencies, cost)) {
+    if (!canAfford(getSpendableCurrencies(state), cost)) {
       return { ok: false, reason: 'insufficient_currency', cost };
     }
 
@@ -1143,7 +1143,7 @@ export const useGameStore = create((set, get) => ({
       return { ok: false, reason: 'cap_reached', cap };
     }
     const cost = getHireCost(state.career.currentTrack, state.career.hires.length);
-    if (!canAfford(state.currencies, cost)) {
+    if (!canAfford(getSpendableCurrencies(state), cost)) {
       return { ok: false, reason: 'insufficient_currency', cost };
     }
 
@@ -1172,7 +1172,7 @@ export const useGameStore = create((set, get) => ({
 
     const cost = getLevelUpCost(state.career.currentTrack, hire.level);
     if (!cost) return { ok: false, reason: 'no_cost' };
-    if (!canAfford(state.currencies, cost)) {
+    if (!canAfford(getSpendableCurrencies(state), cost)) {
       return { ok: false, reason: 'insufficient_currency', cost };
     }
 
@@ -1231,7 +1231,7 @@ export const useGameStore = create((set, get) => ({
       return { ok: false, reason: 'cap_reached', cap };
     }
     const cost = getPoachCost(state.career.currentTrack, state.career.hires.length);
-    if (!canAfford(state.currencies, cost)) {
+    if (!canAfford(getSpendableCurrencies(state), cost)) {
       return { ok: false, reason: 'insufficient_currency', cost };
     }
 
@@ -1361,7 +1361,7 @@ export const useGameStore = create((set, get) => ({
     }
     const initiative = FAANG_INITIATIVES.find((i) => i.id === initiativeId);
     if (!initiative) return { ok: false, reason: 'unknown_initiative' };
-    if (!canAfford(state.currencies, initiative.cost)) {
+    if (!canAfford(getSpendableCurrencies(state), initiative.cost)) {
       return { ok: false, reason: 'insufficient_currency' };
     }
 
@@ -1391,7 +1391,7 @@ export const useGameStore = create((set, get) => ({
     if (state.career.phdEndowments?.includes(endowmentId)) {
       return { ok: false, reason: 'already_active' };
     }
-    if (!canAfford(state.currencies, endowment.cost)) {
+    if (!canAfford(getSpendableCurrencies(state), endowment.cost)) {
       return { ok: false, reason: 'insufficient_currency' };
     }
 
@@ -1453,7 +1453,7 @@ export const useGameStore = create((set, get) => ({
     }
     const course = UPWORK_COURSES.find((c) => c.id === courseId);
     if (!course) return { ok: false, reason: 'unknown_course' };
-    if (!canAfford(state.currencies, course.cost)) {
+    if (!canAfford(getSpendableCurrencies(state), course.cost)) {
       return { ok: false, reason: 'insufficient_currency' };
     }
 
