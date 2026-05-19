@@ -66,7 +66,9 @@ function ActionSlot({ currency }) {
   };
   const multiplier = getEffectiveMultiplier(fauxState, currency);
   const effective = Math.floor(perClick * multiplier);
-  const rewardLabel = formatCopy(copyBlock.rewardLabel, { n: effective });
+  const isUpworkMoney = currency === 'money' && currentTrack === 'upwork';
+  const displayValue = isUpworkMoney ? Math.floor(effective * 0.9) : effective;
+  const rewardLabel = formatCopy(copyBlock.rewardLabel, { n: displayValue });
 
   return (
     <ActionButton

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import clsx from 'clsx';
 import { useGameStore } from '../../game/state/store';
 import { Panel } from '../shared/Panel';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import {
   getHiresCap,
   getHireCost,
@@ -94,57 +96,74 @@ function HireRow({ hire, track, canManage }) {
   const levelUpHire = useGameStore((s) => s.levelUpHire);
   const fireHire = useGameStore((s) => s.fireHire);
 
+  const [showFireConfirm, setShowFireConfirm] = useState(false);
+
   const isMaxLevel = hire.level >= MAX_HIRE_LEVEL;
   const levelUpCost = !isMaxLevel ? getLevelUpCost(track, hire.level) : null;
   const canAffordLevelUp = levelUpCost && canAfford(currencies, levelUpCost);
 
-  const handleFire = () => {
-    if (window.confirm(`Fire ${hire.name}?`)) {
-      fireHire(hire.id);
-    }
+  const handleFire = () => setShowFireConfirm(true);
+  const confirmFire = () => {
+    fireHire(hire.id);
+    setShowFireConfirm(false);
   };
 
   return (
-    <div className="grid grid-cols-[1fr_140px_90px_220px] gap-3 items-center px-3 py-2 border border-phosphor-faint bg-bg-deep text-[11px]">
-      <div>
-        <div className="text-phosphor-bright font-mono">
-          {hire.name}
-          {hire.poached && (
-            <span className="ml-2 text-[9px] uppercase tracking-[0.14em] text-phosphor-dim border border-phosphor-faint px-1.5 py-0.5">
-              poached
-            </span>
+    <>
+      <div className="grid grid-cols-[1fr_140px] sm:grid-cols-[1fr_140px_90px_220px] gap-2 sm:gap-3 items-center px-3 py-2 border border-phosphor-faint bg-bg-deep text-[11px]">
+        <div>
+          <div className="text-phosphor-bright font-mono">
+            {hire.name}
+            {hire.poached && (
+              <span className="ml-2 text-[9px] uppercase tracking-[0.14em] text-phosphor-dim border border-phosphor-faint px-1.5 py-0.5">
+                poached
+              </span>
+            )}
+          </div>
+          <div className="text-phosphor-dim text-[10px] uppercase tracking-wide mt-0.5">{hire.roleLabel}</div>
+        </div>
+        <div className="text-phosphor tabular-nums text-[11px]">
+          {formatRates(hire.rates, hire.level)}
+        </div>
+        <div className="text-phosphor-dim text-[10px] uppercase tracking-wide text-center hidden sm:block">
+          Level <span className="text-phosphor tabular-nums">{hire.level}</span>
+        </div>
+        <div className="flex gap-1 justify-start sm:justify-end flex-wrap col-span-2 sm:col-span-1">
+          <span className="text-phosphor-dim text-[10px] uppercase tracking-wide sm:hidden self-center mr-1">
+            L<span className="text-phosphor tabular-nums">{hire.level}</span>
+          </span>
+          {canManage && (
+            <>
+              {isMaxLevel ? (
+                <span className="px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-phosphor-dim border border-phosphor-faint">
+                  max
+                </span>
+              ) : (
+                <ActionPillButton
+                  disabled={!canAffordLevelUp}
+                  onClick={() => levelUpHire(hire.id)}
+                >
+                  lvl+1 ({formatCost(levelUpCost)})
+                </ActionPillButton>
+              )}
+              <ActionPillButton tone="warm" onClick={handleFire}>
+                fire
+              </ActionPillButton>
+            </>
           )}
         </div>
-        <div className="text-phosphor-dim text-[10px] uppercase tracking-wide mt-0.5">{hire.roleLabel}</div>
       </div>
-      <div className="text-phosphor tabular-nums text-[11px]">
-        {formatRates(hire.rates, hire.level)}
-      </div>
-      <div className="text-phosphor-dim text-[10px] uppercase tracking-wide text-center">
-        Level <span className="text-phosphor tabular-nums">{hire.level}</span>
-      </div>
-      <div className="flex gap-1 justify-end">
-        {canManage && (
-          <>
-            {isMaxLevel ? (
-              <span className="px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-phosphor-dim border border-phosphor-faint">
-                max
-              </span>
-            ) : (
-              <ActionPillButton
-                disabled={!canAffordLevelUp}
-                onClick={() => levelUpHire(hire.id)}
-              >
-                lvl+1 ({formatCost(levelUpCost)})
-              </ActionPillButton>
-            )}
-            <ActionPillButton tone="warm" onClick={handleFire}>
-              fire
-            </ActionPillButton>
-          </>
-        )}
-      </div>
-    </div>
+      <ConfirmDialog
+        open={showFireConfirm}
+        title={`Fire ${hire.name}?`}
+        onConfirm={confirmFire}
+        onCancel={() => setShowFireConfirm(false)}
+        confirmLabel="Fire"
+        tone="destructive"
+      >
+        <p>{hire.name} will be removed from the team. The hire cost is sunk; you can&apos;t get it back.</p>
+      </ConfirmDialog>
+    </>
   );
 }
 

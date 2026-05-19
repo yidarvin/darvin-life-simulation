@@ -15,7 +15,7 @@ export function SaveStatus() {
     );
   }
   if (status === 'saved') {
-    return <span className="text-phosphor-dim">saved</span>;
+    return <span className="text-phosphor-dim animate-pulse-once">saved</span>;
   }
   return <span className="text-phosphor-faint">·</span>;
 }

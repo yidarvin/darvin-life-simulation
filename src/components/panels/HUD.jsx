@@ -29,10 +29,7 @@ export function HUD() {
 
   return (
     <Panel title="[ Status HUD ]">
-      <div
-        className="grid gap-4 text-center"
-        style={{ gridTemplateColumns: `repeat(${visibleCells.length}, minmax(0, 1fr))` }}
-      >
+      <div className="grid gap-3 sm:gap-4 text-center grid-cols-3 sm:grid-cols-6">
         {visibleCells.map((cell) => (
           <HUDCell key={cell.key} cellKey={cell.key} emoji={cell.emoji} label={cell.label} money={cell.money} />
         ))}

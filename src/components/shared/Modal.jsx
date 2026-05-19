@@ -1,18 +1,65 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
+import { usePreviousFocus } from '../../utils/usePreviousFocus';
+
+const TITLE_ID = 'modal-title';
 
 /**
- * Full-screen modal overlay.
+ * Full-screen modal overlay with focus trap, initial focus, focus restoration,
+ * and dialog ARIA semantics.
  *
- * @param {boolean} open - Whether the modal is visible.
- * @param {string} [title] - Title shown in display font.
- * @param {React.ReactNode} children - Body content (paragraphs, etc.)
- * @param {Array<{label: string, onClick: () => void, variant?: 'primary'|'secondary'}>} actions - Buttons at the bottom.
- * @param {() => void} [onClose] - Called on Escape or backdrop click. Omit / pass null to disable both.
- * @param {boolean} [dismissible=true] - If false, backdrop click and Escape do nothing (use for forced flows).
- * @param {string} [className] - Extra classes for the modal panel.
+ * @param {boolean} open
+ * @param {string} [title]
+ * @param {React.ReactNode} children
+ * @param {Array<{label: string, onClick: () => void, variant?: 'primary'|'secondary'}>} [actions]
+ * @param {() => void} [onClose] - Called on Escape or backdrop click.
+ * @param {boolean} [dismissible=true]
+ * @param {string} [className]
  */
-export function Modal({ open, title, children, actions = [], onClose, dismissible = true, className }) {
+export function Modal({
+  open,
+  title,
+  children,
+  actions = [],
+  onClose,
+  dismissible = true,
+  className,
+}) {
+  const dialogRef = useRef(null);
+  usePreviousFocus(open);
+
+  useEffect(() => {
+    if (!open) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const firstPrimary = dialog.querySelector('[data-variant="primary"]');
+    (firstPrimary || dialog).focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (e.key !== 'Tab') return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusables = dialog.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open]);
+
   useEffect(() => {
     if (!open || !dismissible || !onClose) return;
     const handler = (e) => {
@@ -36,18 +83,20 @@ export function Modal({ open, title, children, actions = [], onClose, dismissibl
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
+      aria-labelledby={title ? TITLE_ID : undefined}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className={clsx(
-          'bg-bg-elevated border border-phosphor p-9 max-w-[580px] w-full text-center',
+          'bg-bg-elevated border border-phosphor p-9 max-w-[580px] w-full text-center outline-none',
           className,
         )}
         style={{ boxShadow: '0 0 50px rgba(45, 212, 191, 0.35)' }}
       >
         {title && (
           <h2
-            id="modal-title"
+            id={TITLE_ID}
             className="font-display text-[44px] text-phosphor-bright mb-4 tracking-wide"
             style={{ textShadow: '0 0 10px rgba(45, 212, 191, 0.5)' }}
           >
@@ -58,7 +107,7 @@ export function Modal({ open, title, children, actions = [], onClose, dismissibl
           {children}
         </div>
         {actions.length > 0 && (
-          <div className="mt-5 flex justify-center gap-3">
+          <div className="mt-5 flex justify-center gap-3 flex-wrap">
             {actions.map((action, i) => (
               <ModalActionButton key={i} {...action} />
             ))}
@@ -71,13 +120,13 @@ export function Modal({ open, title, children, actions = [], onClose, dismissibl
 
 function ModalActionButton({ label, onClick, variant = 'primary' }) {
   const base =
-    'px-7 py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] cursor-pointer transition-colors border';
+    'px-7 py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] cursor-pointer transition-colors border focus:outline-none focus:ring-2 focus:ring-phosphor-bright focus:ring-offset-2 focus:ring-offset-bg-elevated';
   const styles = {
     primary: 'bg-bg-deep border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg',
     secondary: 'bg-bg-deep border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor',
   };
   return (
-    <button className={clsx(base, styles[variant])} onClick={onClick}>
+    <button data-variant={variant} className={clsx(base, styles[variant])} onClick={onClick}>
       {label}
     </button>
   );

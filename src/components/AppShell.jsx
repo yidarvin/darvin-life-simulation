@@ -8,7 +8,7 @@ import clsx from 'clsx';
  */
 export function AppShell({ children, className }) {
   return (
-    <main className={clsx('min-h-screen max-w-[920px] mx-auto p-8', className)}>
+    <main className={clsx('min-h-screen max-w-[920px] mx-auto p-4 sm:p-8', className)}>
       {children}
     </main>
   );

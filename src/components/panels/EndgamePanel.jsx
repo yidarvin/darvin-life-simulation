@@ -82,7 +82,7 @@ function StartupEndgame() {
       <div className="text-phosphor-dim text-[11px] italic mb-3">
         Convert Equity to Money at the current market price.
       </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div className="border border-phosphor-faint bg-bg-deep p-3">
           <div className="text-phosphor-dim text-[10px] uppercase tracking-[0.14em] mb-1">Current price</div>
           <div
@@ -237,7 +237,7 @@ function ActiveCourseBar({ course, data }) {
 
 function InitiativeRow({ data, affordable, owned, isPermanent, isCourse, onLaunch }) {
   return (
-    <div className="border border-phosphor-faint bg-bg-deep p-3 grid grid-cols-[1fr_120px] gap-3 items-center">
+    <div className="border border-phosphor-faint bg-bg-deep p-3 grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3 items-center">
       <div>
         <div className="text-phosphor-bright font-mono text-[12px]">{data.label}</div>
         <div className="text-phosphor-dim text-[11px] italic mt-0.5 leading-snug">{data.flavor}</div>

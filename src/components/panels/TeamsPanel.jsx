@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { useGameStore } from '../../game/state/store';
 import { Panel } from '../shared/Panel';
 import { Button } from '../shared/Button';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { MAX_TEAMS, MAX_TEAM_SIZE, getTeamBonus, findHireTeam } from '../../utils/teams';
 
 export function TeamsPanel() {
@@ -48,6 +49,7 @@ function TeamCard({ team }) {
   const removeHireFromTeam = useGameStore((s) => s.removeHireFromTeam);
 
   const [nameEdit, setNameEdit] = useState(team.name);
+  const [showDisbandConfirm, setShowDisbandConfirm] = useState(false);
 
   const memberCount = (team.memberHireIds || []).length;
   const bonus = getTeamBonus(memberCount);
@@ -57,6 +59,12 @@ function TeamCard({ team }) {
     if (nameEdit.trim() !== team.name) {
       renameTeam(team.id, nameEdit.trim() || `Team ${team.id.slice(-4)}`);
     }
+  };
+
+  const handleDisband = () => setShowDisbandConfirm(true);
+  const confirmDisband = () => {
+    deleteTeam(team.id);
+    setShowDisbandConfirm(false);
   };
 
   return (
@@ -78,9 +86,7 @@ function TeamCard({ team }) {
             : <span>need 2+ for bonus</span>}
         </div>
         <button
-          onClick={() => {
-            if (window.confirm(`Disband ${team.name}?`)) deleteTeam(team.id);
-          }}
+          onClick={handleDisband}
           className="text-[10px] uppercase tracking-[0.12em] text-phosphor-dim hover:text-error px-2 py-0.5 border border-phosphor-faint hover:border-error"
         >
           disband
@@ -90,7 +96,7 @@ function TeamCard({ team }) {
       {hires.length === 0 ? (
         <div className="text-phosphor-dim text-[11px] italic">No hires yet.</div>
       ) : (
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
           {hires.map((hire) => {
             const inThisTeam = (team.memberHireIds || []).includes(hire.id);
             const otherTeam = inThisTeam ? null : findHireTeam(teams, hire.id);
@@ -137,6 +143,17 @@ function TeamCard({ team }) {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={showDisbandConfirm}
+        title={`Disband ${team.name}?`}
+        onConfirm={confirmDisband}
+        onCancel={() => setShowDisbandConfirm(false)}
+        confirmLabel="Disband"
+        tone="destructive"
+      >
+        <p>Members become unassigned and can be added to other teams.</p>
+      </ConfirmDialog>
     </div>
   );
 }

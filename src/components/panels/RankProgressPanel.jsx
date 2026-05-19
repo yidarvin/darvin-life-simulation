@@ -60,7 +60,7 @@ export function RankProgressPanel() {
         {Object.entries(cost).map(([currency, target]) => {
           const value = currencies[currency] ?? 0;
           return (
-            <div key={currency} className="grid grid-cols-[150px_1fr_140px] gap-3 items-center text-[12px]">
+            <div key={currency} className="grid grid-cols-[120px_1fr_100px] sm:grid-cols-[150px_1fr_140px] gap-2 sm:gap-3 items-center text-[11px] sm:text-[12px]">
               <div className="text-phosphor-dim text-[11px] uppercase tracking-wide">
                 {CURRENCY_EMOJI[currency]} {CURRENCY_NAMES[currency]}
               </div>

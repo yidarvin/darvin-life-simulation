@@ -35,7 +35,7 @@ export function CareerLadderPanel() {
         )}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
         {Array.from({ length: 7 }, (_, i) => {
           const r = i + 1;
           const isCurrent = r === rank;

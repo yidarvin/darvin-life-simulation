@@ -38,7 +38,7 @@ export function UpworkPanel() {
 
   return (
     <Panel title="[ Upwork Status ]">
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="border border-phosphor-faint bg-bg-deep p-2.5">
           <div className="text-phosphor-dim text-[10px] uppercase tracking-[0.14em] mb-1">🪙 Connects</div>
           <div className="font-display text-[24px] text-phosphor-bright tabular-nums">

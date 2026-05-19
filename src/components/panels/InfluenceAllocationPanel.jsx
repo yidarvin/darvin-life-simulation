@@ -66,7 +66,7 @@ export function InfluenceAllocationPanel() {
         {BUCKETS.map((b) => {
           const mult = getAllocMultiplier(fauxState, b.key);
           return (
-            <div key={b.key} className="grid grid-cols-[140px_1fr_60px_280px] gap-2 items-center text-[11px]">
+            <div key={b.key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr_60px_280px] gap-2 items-center text-[11px]">
               <div className="text-phosphor-dim uppercase tracking-wide">
                 {CURRENCY_EMOJI[b.key]} {b.label}
               </div>
@@ -79,7 +79,7 @@ export function InfluenceAllocationPanel() {
               <div className="text-phosphor-bright text-[12px] tabular-nums font-mono text-center">
                 ×{mult.toFixed(2)}
               </div>
-              <div className="flex gap-1 justify-end">
+              <div className="flex gap-1 justify-start sm:justify-end flex-wrap">
                 {ADJUST_STEPS.map((delta) => (
                   <AdjustButton
                     key={delta}

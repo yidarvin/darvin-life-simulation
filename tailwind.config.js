@@ -15,8 +15,9 @@ export default {
           dim: '#4a857e',
           faint: '#1d3633',
         },
-        error: '#dc2626',
         warning: '#f0c674',
+        error: '#cc6666',
+        success: '#a3be8c',
       },
       fontFamily: {
         display: ['VT323', 'monospace'],
