@@ -4,6 +4,7 @@ import { useGameStore } from '../../game/state/store';
 import { Panel } from '../shared/Panel';
 import { ProgressBar } from '../shared/ProgressBar';
 import { CONNECT_BUNDLES, CONNECTS_CAP } from '../../utils/upworkTax';
+import { sound } from '../../utils/sound';
 
 export function UpworkPanel() {
   const stage = useGameStore((s) => s.stage);
@@ -26,6 +27,7 @@ export function UpworkPanel() {
       : 'text-error';
 
   const handleBid = () => {
+    sound.play('click');
     const result = bidOnGig();
     if (result.ok) {
       setLastBid(result);
@@ -86,7 +88,7 @@ export function UpworkPanel() {
           return (
             <button
               key={bundle.amount}
-              onClick={() => buyConnects(bundle.amount)}
+              onClick={() => { sound.play('click'); buyConnects(bundle.amount); }}
               disabled={!can}
               className={clsx(
                 'px-3 py-2 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',

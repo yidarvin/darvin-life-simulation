@@ -8,6 +8,7 @@ import { CurrencyValue } from '../shared/CurrencyValue';
 import { YEAR_TRANSITIONS, YEAR_LABELS } from '../../data/yearTransitions';
 import { CURRENCY_EMOJI, canAfford } from '../../utils/currency';
 import { copy, formatCopy } from '../../data/copy';
+import { sound } from '../../utils/sound';
 
 const CURRENCY_NAMES = {
   knowledge: 'Knowledge',
@@ -35,6 +36,7 @@ export function YearProgressPanel() {
   const eventRequired = Boolean(transition.requiresEvent);
 
   const handleContinueClick = () => {
+    sound.play('click');
     setModalOpen(true);
   };
 
@@ -107,7 +109,7 @@ function SummerInternshipTrigger({ ready }) {
   const beginInternshipOffer = useGameStore((s) => s.beginInternshipOffer);
   return (
     <button
-      onClick={() => beginInternshipOffer()}
+      onClick={() => { sound.play('click'); beginInternshipOffer(); }}
       disabled={!ready}
       className={clsx(
         'w-full py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',
@@ -125,7 +127,7 @@ function SeniorYearJobOfferTrigger({ ready }) {
   const beginJobOffer = useGameStore((s) => s.beginJobOffer);
   return (
     <button
-      onClick={() => beginJobOffer()}
+      onClick={() => { sound.play('click'); beginJobOffer(); }}
       disabled={!ready}
       className={clsx(
         'w-full py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { usePreviousFocus } from '../../utils/usePreviousFocus';
+import { sound } from '../../utils/sound';
 
 const TITLE_ID = 'modal-title';
 
@@ -34,6 +35,10 @@ export function Modal({
     if (!dialog) return;
     const firstPrimary = dialog.querySelector('[data-variant="primary"]');
     (firstPrimary || dialog).focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (open) sound.play('modalOpen');
   }, [open]);
 
   useEffect(() => {
@@ -125,8 +130,12 @@ function ModalActionButton({ label, onClick, variant = 'primary' }) {
     primary: 'bg-bg-deep border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg',
     secondary: 'bg-bg-deep border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor',
   };
+  const handleClick = (e) => {
+    sound.play('click');
+    onClick?.(e);
+  };
   return (
-    <button data-variant={variant} className={clsx(base, styles[variant])} onClick={onClick}>
+    <button data-variant={variant} className={clsx(base, styles[variant])} onClick={handleClick}>
       {label}
     </button>
   );

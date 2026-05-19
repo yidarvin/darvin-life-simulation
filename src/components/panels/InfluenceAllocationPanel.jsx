@@ -4,6 +4,7 @@ import { Panel } from '../shared/Panel';
 import { Button } from '../shared/Button';
 import { CURRENCY_EMOJI } from '../../utils/currency';
 import { getAllocMultiplier } from '../../data/careerTracks';
+import { sound } from '../../utils/sound';
 
 const BUCKETS = [
   { key: 'knowledge', label: 'Knowledge' },
@@ -110,9 +111,13 @@ export function InfluenceAllocationPanel() {
 }
 
 function AdjustButton({ children, onClick, disabled }) {
+  const handleClick = (e) => {
+    sound.play('click');
+    onClick?.(e);
+  };
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       className={clsx(
         'px-2 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center',

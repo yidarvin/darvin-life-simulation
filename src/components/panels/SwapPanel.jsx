@@ -9,6 +9,7 @@ import {
   getRequiredRank,
   getSwapApplicationsCost,
 } from '../../data/swapTopology';
+import { sound } from '../../utils/sound';
 
 const TRACK_ORDER = ['faang', 'startup', 'phd', 'upwork'];
 
@@ -59,7 +60,7 @@ function SwapCard({ currentTrack, rank, applications, target, onSwap }) {
 
   return (
     <button
-      onClick={onSwap}
+      onClick={() => { sound.play('click'); onSwap(); }}
       disabled={locked}
       className={clsx(
         'p-3 border bg-bg-deep text-left transition-colors',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AboutModal } from './AboutModal';
+import { sound } from '../utils/sound';
 
 /**
  * Page header: large display title + small uppercase subtitle.
@@ -16,7 +17,7 @@ export function Header({ version = 'v0.0', stage }) {
     <>
       <header className="text-center mb-12 pt-4 relative">
         <button
-          onClick={() => setAboutOpen(true)}
+          onClick={() => { sound.play('click'); setAboutOpen(true); }}
           className="absolute top-4 right-0 w-7 h-7 font-mono text-[14px] border border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor focus:outline-none focus:border-phosphor cursor-pointer flex items-center justify-center"
           aria-label="About this game"
         >

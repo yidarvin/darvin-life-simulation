@@ -51,6 +51,7 @@ import {
   VACATION_CLEAR,
   nextCollapsed,
 } from '../../utils/burnout';
+import { sound } from '../../utils/sound';
 
 // Annual performance review disabled.
 // /**
@@ -126,6 +127,7 @@ export const useGameStore = create((set, get) => ({
    * @returns {number} amount added (so callers can show "+N" feedback)
    */
   click(currency) {
+    sound.play('click');
     const state = get();
     const clickMultiplier = state.meta.devMode ? 10 : 1;
     const grossAmount = getEffectiveClickAmount(state, currency) * clickMultiplier;
@@ -326,12 +328,14 @@ export const useGameStore = create((set, get) => ({
 
     // Upwork active course (rank 7+ Upwork endgame). TAX-FREE money generation —
     // added to nextCurrencies.money AFTER the tax loop above so it bypasses the 10%.
+    let courseJustCompleted = false;
     if (s.stage === 'career' && s.upwork.activeCourse) {
       const courseData = UPWORK_COURSES.find((c) => c.id === s.upwork.activeCourse.courseId);
       if (courseData) {
         const elapsedSec = (Date.now() - s.upwork.activeCourse.startedAt) / 1000;
         if (elapsedSec >= courseData.durationSec) {
           upworkPatch = { ...(upworkPatch ?? s.upwork), activeCourse: null };
+          courseJustCompleted = true;
         } else {
           const earningsThisTick = courseData.moneyRate * effectiveDt;
           nextCurrencies.money = (nextCurrencies.money || 0) + earningsThisTick;
@@ -382,6 +386,13 @@ export const useGameStore = create((set, get) => ({
     }
 
     if (Object.keys(patch).length > 0) set(patch);
+
+    // Sound effects for moments emerging from the tick. Modal-driven sounds
+    // (eventSpawn, burnoutWarning) layer on top of modalOpen, which fires
+    // when the modal mounts — slightly busy but tolerable at these volumes.
+    if (randomEventModal) sound.play('eventSpawn');
+    if (vacationModal) sound.play('burnoutWarning');
+    if (courseJustCompleted) sound.play('courseComplete');
 
     // completeInternship reads fresh state and opens its own modal.
     if (shouldCompleteInternship) get().completeInternship();
@@ -458,6 +469,7 @@ export const useGameStore = create((set, get) => ({
         owned: { ...state.shop.owned, [itemId]: true },
       },
     });
+    sound.play('shopBuy');
     debouncedSave(get, set);
     return true;
   },
@@ -497,6 +509,7 @@ export const useGameStore = create((set, get) => ({
       year: transition.nextYear,
       stage: transition.nextStage,
     });
+    sound.play('yearTransition');
     debouncedSave(get, set);
     return { ok: true };
   },
@@ -656,6 +669,7 @@ export const useGameStore = create((set, get) => ({
       collapsed: nextCollapsed(state.collapsed, postBurnout),
       ui: { ...state.ui, activeModal: null },
     });
+    sound.play('vacation');
     debouncedSave(get, set);
     return { ok: true };
   },
@@ -714,6 +728,7 @@ export const useGameStore = create((set, get) => ({
         },
       },
     }));
+    sound.play('internshipComplete');
   },
 
   /**
@@ -798,6 +813,7 @@ export const useGameStore = create((set, get) => ({
         },
       },
     });
+    sound.play(success ? 'jobOfferSuccess' : 'jobOfferFail');
   },
 
   /**
@@ -967,6 +983,7 @@ export const useGameStore = create((set, get) => ({
         },
       },
     });
+    sound.play(isFirstEndgameForTrack ? 'endgameReached' : 'rankUp');
     debouncedSave(get, set);
     return { ok: true, newRank, cost, rankLabel: trackData.rankLabels[newRank], flavor: trackData.rankFlavor[newRank] };
   },
@@ -1114,6 +1131,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     set(patch);
+    sound.play('swap');
     debouncedSave(get, set);
   },
 
@@ -1561,6 +1579,7 @@ export const useGameStore = create((set, get) => ({
     };
 
     set({ currencies: nextCurrencies, upwork: nextUpwork });
+    sound.play(accepted ? 'bidWin' : 'bidLose');
     debouncedSave(get, set);
     return { ok: true, accepted, cost, gross, net, tax };
   },

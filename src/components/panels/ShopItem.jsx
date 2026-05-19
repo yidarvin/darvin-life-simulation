@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { useGameStore } from '../../game/state/store';
 import { canAfford, getSpendableCurrencies, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
+import { sound } from '../../utils/sound';
 
 /**
  * Single shop item row.
@@ -19,6 +20,7 @@ export function ShopItem({ item }) {
 
   const handleClick = () => {
     if (!affordable) return;
+    sound.play('click');
     buyShopItem(item.id);
   };
 

@@ -12,6 +12,7 @@ import {
   MAX_HIRE_LEVEL,
 } from '../../data/hires';
 import { CURRENCY_EMOJI, canAfford, getSpendableCurrencies, formatCost } from '../../utils/currency';
+import { sound } from '../../utils/sound';
 
 export function TeamsPanel() {
   const stage = useGameStore((s) => s.stage);
@@ -52,7 +53,7 @@ export function TeamsPanel() {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTeamId(t.id)}
+              onClick={() => { sound.play('click'); setActiveTeamId(t.id); }}
               className={clsx(
                 'px-3 font-mono text-[11px] uppercase tracking-[0.1em] border transition-colors min-h-[44px] inline-flex items-center gap-2',
                 isActive
@@ -67,7 +68,7 @@ export function TeamsPanel() {
         })}
         {teams.length < MAX_TEAMS && (
           <button
-            onClick={handleCreate}
+            onClick={() => { sound.play('click'); handleCreate(); }}
             className="px-3 font-mono text-[11px] uppercase tracking-[0.1em] border border-phosphor text-phosphor-bright hover:bg-phosphor hover:text-bg transition-colors min-h-[44px] cursor-pointer"
           >
             + new team
@@ -160,7 +161,7 @@ function TeamView({ team }) {
             : <span>need 2+ for bonus</span>}
         </div>
         <button
-          onClick={() => setShowDisbandConfirm(true)}
+          onClick={() => { sound.play('click'); setShowDisbandConfirm(true); }}
           className="text-[10px] uppercase tracking-[0.12em] text-phosphor-dim hover:text-error px-2 border border-phosphor-faint hover:border-error min-h-[44px] inline-flex items-center"
         >
           disband
@@ -211,7 +212,7 @@ function TeamView({ team }) {
             {unassignedHires.map((hire) => (
               <button
                 key={hire.id}
-                onClick={() => assignHireToTeam(team.id, hire.id)}
+                onClick={() => { sound.play('click'); assignHireToTeam(team.id, hire.id); }}
                 className="text-left px-2 py-1.5 text-[11px] border border-phosphor-faint bg-bg-deep text-phosphor hover:border-phosphor hover:bg-[#0e1a18] cursor-pointer min-h-[44px]"
               >
                 <span className="font-mono">{hire.name}</span>
@@ -326,9 +327,13 @@ function MemberRow({ hire, track, canManage }) {
 }
 
 function PillButton({ disabled, onClick, children, tone = 'normal' }) {
+  const handleClick = (e) => {
+    sound.play('click');
+    onClick?.(e);
+  };
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       className={clsx(
         'px-3 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors min-h-[44px] inline-flex items-center justify-center',

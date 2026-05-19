@@ -12,6 +12,7 @@ import {
 } from '../../data/hires';
 import { CURRENCY_EMOJI, canAfford, getSpendableCurrencies, formatCost } from '../../utils/currency';
 import { findHireTeam } from '../../utils/teams';
+import { sound } from '../../utils/sound';
 
 export function HirePanel() {
   const stage = useGameStore((s) => s.stage);
@@ -96,9 +97,13 @@ export function HirePanel() {
 }
 
 function ActionPillButton({ disabled, onClick, children, tone = 'normal' }) {
+  const handleClick = (e) => {
+    sound.play('click');
+    onClick?.(e);
+  };
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       className={clsx(
         'px-3 font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors min-h-[44px] inline-flex items-center justify-center',

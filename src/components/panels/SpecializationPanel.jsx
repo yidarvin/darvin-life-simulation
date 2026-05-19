@@ -4,6 +4,7 @@ import { Panel } from '../shared/Panel';
 import { SPECIALIZATIONS } from '../../data/specializations';
 import { CURRENCY_EMOJI } from '../../utils/currency';
 import { copy } from '../../data/copy';
+import { sound } from '../../utils/sound';
 
 const CURRENCY_NAMES = {
   knowledge: 'Knowledge',
@@ -34,7 +35,7 @@ export function SpecializationPanel() {
         {options.map((option) => (
           <button
             key={option.id}
-            onClick={() => chooseSpecialization(option.id)}
+            onClick={() => { sound.play('click'); chooseSpecialization(option.id); }}
             className={clsx(
               'p-3 border bg-bg-deep text-left transition-colors',
               'border-phosphor-faint hover:border-phosphor hover:bg-[#11201d]',

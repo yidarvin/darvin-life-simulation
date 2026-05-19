@@ -12,6 +12,7 @@ import {
 } from '../../data/endgameMechanics';
 import { CAREER_TRACKS } from '../../data/careerTracks';
 import { canAfford, getSpendableCurrencies, formatCost, CURRENCY_EMOJI } from '../../utils/currency';
+import { sound } from '../../utils/sound';
 
 export function EndgamePanel() {
   const stage = useGameStore((s) => s.stage);
@@ -119,7 +120,7 @@ function StartupEndgame() {
           = <span className="text-phosphor-bright">${moneyValue.toLocaleString()}</span>
         </div>
         <button
-          onClick={() => sellEquity(amount)}
+          onClick={() => { sound.play('click'); sellEquity(amount); }}
           disabled={!canSell}
           className={clsx(
             'px-3 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors',
@@ -131,7 +132,7 @@ function StartupEndgame() {
           sell
         </button>
         <button
-          onClick={sellAll}
+          onClick={() => { sound.play('click'); sellAll(); }}
           disabled={equity < 1}
           className="px-3 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border border-phosphor-faint text-phosphor-dim hover:border-phosphor hover:text-phosphor cursor-pointer"
         >
@@ -277,7 +278,7 @@ function InitiativeRow({ data, affordable, owned, isPermanent, isCourse, onLaunc
           </span>
         ) : (
           <button
-            onClick={onLaunch}
+            onClick={() => { sound.play('click'); onLaunch(); }}
             disabled={!affordable}
             className={clsx(
               'px-3 py-2 min-h-[44px] font-mono text-[10px] uppercase tracking-[0.1em] border transition-colors w-full',

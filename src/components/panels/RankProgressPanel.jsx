@@ -6,6 +6,7 @@ import { CurrencyValue } from '../shared/CurrencyValue';
 import { getRankUpCost } from '../../data/rankUpCosts';
 import { CAREER_TRACKS } from '../../data/careerTracks';
 import { canAfford, getSpendableCurrencies, CURRENCY_EMOJI } from '../../utils/currency';
+import { sound } from '../../utils/sound';
 
 const CURRENCY_NAMES = {
   knowledge: 'Knowledge',
@@ -77,7 +78,7 @@ export function RankProgressPanel() {
       </div>
 
       <button
-        onClick={() => tryRankUp()}
+        onClick={() => { sound.play('click'); tryRankUp(); }}
         disabled={!ready}
         className={clsx(
           'w-full min-h-[44px] py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] border transition-colors',
