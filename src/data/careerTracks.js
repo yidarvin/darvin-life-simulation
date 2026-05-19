@@ -1,4 +1,5 @@
 import { getSpecMultiplier } from './specializations';
+import { getBurnoutMultiplier } from '../utils/burnout';
 
 /**
  * Canonical career-track data.
@@ -176,7 +177,8 @@ export function getEffectiveMultiplier(state, currency) {
     currency,
   );
   const allocMult = getAllocMultiplier(state, currency);
-  return trackMult * specMult * allocMult;
+  const burnoutMult = getBurnoutMultiplier(state.burnout || 0);
+  return trackMult * specMult * allocMult * burnoutMult;
 }
 
 /**

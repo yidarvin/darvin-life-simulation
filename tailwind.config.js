@@ -16,6 +16,7 @@ export default {
           faint: '#1d3633',
         },
         error: '#dc2626',
+        warning: '#f0c674',
       },
       fontFamily: {
         display: ['VT323', 'monospace'],

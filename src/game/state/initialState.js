@@ -90,6 +90,7 @@ export function initialState() {
       activeModal: null, // { kind, payload } | null
       lastSaveStatus: null, // 'saved' | 'failed' | null
       lastSaveError: null,
+      burnoutModalShown: false,
     },
   };
 }

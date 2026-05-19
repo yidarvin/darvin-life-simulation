@@ -35,6 +35,33 @@ import {
   getGigBidCost,
   rollGigOutcome,
 } from '../../utils/upworkTax';
+import {
+  BURNOUT_BURNED,
+  VACATION_COST,
+  VACATION_CLEAR,
+} from '../../utils/burnout';
+
+/**
+ * Compare current "dominant" currency vs last review snapshot. Returns
+ * 'success' | 'neutral' | 'failure' based on copy.modals.annualReview thresholds.
+ */
+function computeReviewOutcome(current, snapshot) {
+  const dominantKey = Object.entries(current).reduce(
+    (best, [k, v]) => (v > best.v ? { k, v } : best),
+    { k: null, v: -Infinity },
+  ).k;
+  if (!dominantKey) return 'neutral';
+
+  const baseline = snapshot[dominantKey] ?? 0;
+  if (baseline <= 0) return 'success';
+  const growth = (current[dominantKey] - baseline) / baseline;
+
+  const tSuccess = copy.modals.annualReview.thresholdSuccess;
+  const tNeutral = copy.modals.annualReview.thresholdNeutral;
+  if (growth >= tSuccess) return 'success';
+  if (growth >= tNeutral) return 'neutral';
+  return 'failure';
+}
 
 let saveDebounceTimer = null;
 const SAVE_DEBOUNCE_MS = 500;
@@ -198,7 +225,34 @@ export const useGameStore = create((set, get) => ({
       internshipPatch = { ...s.internship, daysElapsed: nextDaysElapsed };
     }
 
-    // 3. Random events (career stage, rank >= 2). Poisson-distributed inter-arrival.
+    // 3. Wellness scheduling — vacation warning (one-shot per high-burnout episode)
+    //    and annual performance review (periodic). Both gated to career stage.
+    let vacationModal = null;
+    let burnoutFlagPatch = null;
+    const isHighBurnout = s.burnout >= BURNOUT_BURNED;
+    if (s.stage === 'career' && isHighBurnout && !s.ui.activeModal && !s.ui.burnoutModalShown) {
+      vacationModal = { kind: 'vacation_warning' };
+    } else if (!isHighBurnout && s.ui.burnoutModalShown) {
+      burnoutFlagPatch = { burnoutModalShown: false };
+    }
+
+    let annualReviewModal = null;
+    let annualReviewPatch = null;
+    const REVIEW_INTERVAL_MS = s.meta.devMode ? 9000 : 90000;
+    if (s.stage === 'career' && !s.ui.activeModal && !vacationModal) {
+      const last = s.annualReview.lastFiredAt;
+      if (!last || Date.now() - last >= REVIEW_INTERVAL_MS) {
+        const outcome = computeReviewOutcome(s.currencies, s.annualReview.snapshotsByCurrency);
+        annualReviewPatch = {
+          lastFiredAt: Date.now(),
+          snapshotsByCurrency: { ...s.currencies },
+        };
+        annualReviewModal = { kind: 'annual_review', payload: { outcome } };
+      }
+    }
+
+    // 4. Random events (career stage, rank >= 2). Poisson-distributed inter-arrival.
+    //    Defers to wellness modals so an event doesn't consume a bank slot while blocked.
     let eventsPatch = null;
     let randomEventModal = null;
 
@@ -211,7 +265,12 @@ export const useGameStore = create((set, get) => ({
           enabled: true,
           nextEventAt: Date.now() + nextEventDelayMs(s.meta.devMode),
         };
-      } else if (!s.ui.activeModal && Date.now() >= (s.events.nextEventAt ?? 0)) {
+      } else if (
+        !s.ui.activeModal
+        && !vacationModal
+        && !annualReviewModal
+        && Date.now() >= (s.events.nextEventAt ?? 0)
+      ) {
         const eligible = pickEligibleEvent(s);
         eventsPatch = { ...s.events };
         if (eligible) {
@@ -255,18 +314,23 @@ export const useGameStore = create((set, get) => ({
       upworkPatch = { ...base, connects: newConnects };
     }
 
-    // 4. Compose single set() call.
+    // 5. Compose single set() call.
     const patch = {};
     if (currenciesChanged) patch.currencies = nextCurrencies;
     if (internshipPatch) patch.internship = internshipPatch;
     if (eventsPatch) patch.events = eventsPatch;
     if (upworkPatch) patch.upwork = upworkPatch;
+    if (annualReviewPatch) patch.annualReview = annualReviewPatch;
 
-    // Modal precedence: internship event > random event (can't both apply in practice;
-    // random events only fire in career stage, internship lives in its own stage).
-    const modalToOpen = internshipModal || randomEventModal;
+    // Modal precedence: internship event > vacation warning > annual review > random event.
+    // Internship and the career-stage modals are mutually exclusive by stage; the
+    // career-stage trio is ordered by salience (burnout first, then performance).
+    const modalToOpen = internshipModal || vacationModal || annualReviewModal || randomEventModal;
     if (modalToOpen) {
       patch.ui = { ...s.ui, activeModal: modalToOpen };
+    }
+    if (burnoutFlagPatch) {
+      patch.ui = { ...(patch.ui ?? s.ui), ...burnoutFlagPatch };
     }
 
     if (Object.keys(patch).length > 0) set(patch);
@@ -529,6 +593,57 @@ export const useGameStore = create((set, get) => ({
       currencies: nextCurrencies,
       burnout: nextBurnout,
       upwork: nextUpwork,
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+  },
+
+  /**
+   * Pay $1,000 to clear 50 burnout. Closes the warning modal.
+   */
+  takeVacation() {
+    const state = get();
+    if (state.currencies.money < VACATION_COST) {
+      return { ok: false, reason: 'insufficient_money' };
+    }
+    set({
+      currencies: { ...state.currencies, money: state.currencies.money - VACATION_COST },
+      burnout: Math.max(0, state.burnout - VACATION_CLEAR),
+      ui: { ...state.ui, activeModal: null },
+    });
+    debouncedSave(get, set);
+    return { ok: true };
+  },
+
+  /**
+   * Dismiss the vacation warning. Sets the one-shot flag so it won't immediately re-trigger.
+   */
+  skipVacation() {
+    set((s) => ({ ui: { ...s.ui, activeModal: null, burnoutModalShown: true } }));
+  },
+
+  /**
+   * Acknowledge the annual review. Applies bonus if any, closes modal.
+   */
+  dismissAnnualReview() {
+    const state = get();
+    const modal = state.ui.activeModal;
+    if (!modal || modal.kind !== 'annual_review') return;
+
+    const { outcome } = modal.payload;
+    const bonus = outcome === 'success'
+      ? copy.modals.annualReview.bonusSuccess
+      : outcome === 'neutral'
+        ? copy.modals.annualReview.bonusNeutral
+        : {};
+
+    const nextCurrencies = { ...state.currencies };
+    for (const [c, amt] of Object.entries(bonus || {})) {
+      nextCurrencies[c] = (nextCurrencies[c] || 0) + amt;
+    }
+
+    set({
+      currencies: nextCurrencies,
       ui: { ...state.ui, activeModal: null },
     });
     debouncedSave(get, set);

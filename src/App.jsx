@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HUD } from './components/panels/HUD';
 import { ActionsPanel } from './components/panels/ActionsPanel';
+import { BurnoutPanel } from './components/panels/BurnoutPanel';
 import { ShopPanel } from './components/panels/ShopPanel';
 import { YearProgressPanel } from './components/panels/YearProgressPanel';
 import { InternshipPanel } from './components/panels/InternshipPanel';
@@ -21,13 +22,15 @@ import { RankUpFlow } from './components/events/RankUpFlow';
 import { SwapFlow } from './components/events/SwapFlow';
 import { RandomEventFlow } from './components/events/RandomEventFlow';
 import { EndgameFlow } from './components/events/EndgameFlow';
+import { WellnessFlow } from './components/events/WellnessFlow';
 
 export default function App() {
   return (
     <AppShell>
-      <Header version="v0.0" stage="session 26 — upwork sub-mechanics" />
+      <Header version="v0.0" stage="session 27 — burnout + annual review" />
       <HUD />
       <ActionsPanel />
+      <BurnoutPanel />
       <YearProgressPanel />
       <InternshipPanel />
       <CareerLadderPanel />
@@ -47,6 +50,7 @@ export default function App() {
       <SwapFlow />
       <RandomEventFlow />
       <EndgameFlow />
+      <WellnessFlow />
     </AppShell>
   );
 }

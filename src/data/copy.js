@@ -158,6 +158,24 @@ export const copy = {
       confirmLabel: 'Confirm swap',
       cancelLabel: 'Stay',
     },
+    vacationWarning: {
+      title: 'Burnout warning',
+      bodyTemplate:
+        'Your generation rates have dropped to {pct}% of normal. Your hires haven\'t had a 1:1 in weeks. You drafted a Slack message at 2am and didn\'t send it.\n\nTake a vacation for $1,000 (-50 burnout). Or push through and let it ride.',
+      takeLabel: 'Vacation ($1,000)',
+      skipLabel: 'Push through',
+    },
+    annualReview: {
+      title: 'Annual performance review',
+      bodySuccess: 'Your manager described your year as "exceptional." HR is processing a bonus.',
+      bodyNeutral: 'Your manager called your year "solid." No mention of promotion.',
+      bodyFailure: 'Your manager described your year as "showing potential." HR is processing nothing.',
+      bonusSuccess: { money: 2500, influence: 100 },
+      bonusNeutral: { money: 500 },
+      confirmLabel: 'Acknowledged',
+      thresholdSuccess: 0.5,
+      thresholdNeutral: 0.1,
+    },
     upworkGauntlet: [
       {
         title: 'Are you sure?',
