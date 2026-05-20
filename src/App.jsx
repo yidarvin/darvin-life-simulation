@@ -27,7 +27,8 @@ import { WellnessFlow } from './components/events/WellnessFlow';
 import { OfflineCatchUpFlow } from './components/events/OfflineCatchUpFlow';
 import { MusicController } from './components/MusicController';
 import { initOfflineCatchUp, teardownOfflineCatchUp } from './game/state/offlineCatchUp';
-import { music } from './utils/music';
+import { music, getCurrentPhase } from './utils/music';
+import { useGameStore } from './game/state/store';
 
 export default function App() {
   useEffect(() => {
@@ -36,16 +37,28 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Retry on every gesture — if the first play() silently rejected (iOS
-    // autoplay quirks, file not loaded yet), the next gesture recovers.
-    const unlock = () => music.unlock();
-    document.addEventListener('click', unlock);
-    document.addEventListener('touchstart', unlock);
-    document.addEventListener('keydown', unlock);
+    // Every gesture: read current phase from the store and ensure the right
+    // track is playing. Zustand updates synchronously inside the React onClick
+    // handler that fires before this bubble-phase handler, so getState() here
+    // sees the post-click phase. Doing this inside a gesture is what makes
+    // play() reliably succeed — useEffect-driven plays after a phase change
+    // can be rejected by Chrome's autoplay policy.
+    const onGesture = () => {
+      const state = useGameStore.getState();
+      const phase = getCurrentPhase({
+        stage: state.stage,
+        year: state.year,
+        career: { currentTrack: state.career.currentTrack, rank: state.career.rank },
+      });
+      music.ensurePlaying(phase);
+    };
+    document.addEventListener('click', onGesture);
+    document.addEventListener('touchstart', onGesture);
+    document.addEventListener('keydown', onGesture);
     return () => {
-      document.removeEventListener('click', unlock);
-      document.removeEventListener('touchstart', unlock);
-      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('click', onGesture);
+      document.removeEventListener('touchstart', onGesture);
+      document.removeEventListener('keydown', onGesture);
     };
   }, []);
 

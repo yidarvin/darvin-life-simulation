@@ -1,10 +1,19 @@
 import { getCurrentPhase } from './phaseResolution';
-import { getMusicKey } from '../data/musicMap';
+import { getMusicKey, PHASE_TO_MUSIC_KEY } from '../data/musicMap';
+
+const ALL_MUSIC_KEYS = [...new Set(Object.values(PHASE_TO_MUSIC_KEY))];
 
 const STORAGE_KEY = 'lifeSim:music';
 const DEFAULT_VOLUME = 0.4;
 const CROSSFADE_MS = 1500;
 const MIN_PHASE_DURATION_MS = 8000;
+
+// Toggle in console: window.__musicDebug = true
+function dbg(...args) {
+  if (typeof window !== 'undefined' && window.__musicDebug) {
+    console.log('[music]', ...args);
+  }
+}
 
 class MusicEngine {
   constructor() {
@@ -24,7 +33,9 @@ class MusicEngine {
       if (!raw) return;
       const s = JSON.parse(raw);
       if (typeof s.muted === 'boolean') this.muted = s.muted;
-      if (typeof s.volume === 'number') this.volume = Math.max(0, Math.min(1, s.volume));
+      if (typeof s.volume === 'number' && Number.isFinite(s.volume)) {
+        this.volume = Math.max(0, Math.min(1, s.volume));
+      }
     } catch {
       // Use defaults.
     }
@@ -46,7 +57,15 @@ class MusicEngine {
   // resolves pendingPhase even when muted so a later unmute can start playback
   // without needing another gesture.
   unlock() {
+    const firstUnlock = !this.unlocked;
     this.unlocked = true;
+
+    // Prime every track's <audio> within this gesture. Some browsers (notably
+    // Safari, and sometimes Chrome) refuse to play elements that were first
+    // created outside a user gesture — even if a later play() happens inside
+    // one. Creating them all up-front avoids that whole class of failure when
+    // the game transitions phase later from a useEffect.
+    if (firstUnlock) this._primeAllAudio();
 
     // Resolve any queued phase into currentMusicKey. playPhase internally
     // skips _fadeIn if muted, but still sets currentMusicKey.
@@ -74,6 +93,71 @@ class MusicEngine {
     }
   }
 
+  // The all-in-one entry point: call this on every user gesture with the
+  // current phase. It primes, transitions, and (re)starts playback as needed,
+  // all inside the gesture so play() is guaranteed to be allowed. Bypasses
+  // MIN_PHASE_DURATION_MS throttling because if a real phase change happens,
+  // the user should hear it.
+  ensurePlaying(phase) {
+    const firstUnlock = !this.unlocked;
+    this.unlocked = true;
+    if (firstUnlock) this._primeAllAudio();
+
+    const musicKey = phase ? getMusicKey(phase) : null;
+    dbg('ensurePlaying', { phase, musicKey, currentMusicKey: this.currentMusicKey, muted: this.muted, firstUnlock });
+
+    // Transition if the requested key differs from what's current.
+    if (musicKey && musicKey !== this.currentMusicKey) {
+      const oldKey = this.currentMusicKey;
+      this.currentMusicKey = musicKey;
+      this.pendingPhase = null;
+      this.lastPhaseChangeAt = Date.now();
+      if (oldKey) this._fadeOut(oldKey);
+      if (!this.muted) this._fadeIn(musicKey);
+      return;
+    }
+
+    if (this.muted) return;
+
+    // Same key (or no phase given) — make sure the current track is playing.
+    if (this.currentMusicKey) {
+      const audio = this.audioByKey.get(this.currentMusicKey);
+      if (audio) {
+        dbg('retry play', {
+          key: this.currentMusicKey,
+          paused: audio.paused,
+          readyState: audio.readyState,
+          volume: audio.volume,
+          muted: audio.muted,
+          currentTime: audio.currentTime,
+          engineVolume: this.volume,
+        });
+        const p = audio.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => dbg('retry play OK', this.currentMusicKey))
+           .catch((e) => dbg('retry play FAIL', this.currentMusicKey, e.name, e.message));
+        }
+      } else {
+        this._fadeIn(this.currentMusicKey);
+      }
+    } else if (this.pendingPhase) {
+      const queued = this.pendingPhase;
+      this.pendingPhase = null;
+      this.lastPhaseChangeAt = 0;
+      this.playPhase(queued);
+    }
+  }
+
+  // Pre-create every track's Audio element so each one is registered in the
+  // current user-gesture context. Uses preload='metadata' to avoid pulling
+  // ~46MB of audio data upfront — full data loads when each track is first
+  // played (preload is promoted to 'auto' inside _getOrCreate on play).
+  _primeAllAudio() {
+    for (const key of ALL_MUSIC_KEYS) {
+      this._getOrCreate(key, 'metadata');
+    }
+  }
+
   setMuted(muted) {
     this.muted = !!muted;
     this._saveSettings();
@@ -91,7 +175,11 @@ class MusicEngine {
   }
 
   setVolume(v) {
-    this.volume = Math.max(0, Math.min(1, v));
+    // Reject NaN/non-finite; otherwise this.volume would poison every future
+    // _rampVolume call and throw IndexSizeError mid-tick.
+    const n = Number(v);
+    if (!Number.isFinite(n)) return;
+    this.volume = Math.max(0, Math.min(1, n));
     this._saveSettings();
     if (this.muted) return;
     if (this.currentMusicKey) {
@@ -159,14 +247,20 @@ class MusicEngine {
     if (!this.muted) this._fadeIn(musicKey);
   }
 
-  _getOrCreate(musicKey) {
+  _getOrCreate(musicKey, preload = 'auto') {
     if (this.audioByKey.has(musicKey)) {
-      return this.audioByKey.get(musicKey);
+      const existing = this.audioByKey.get(musicKey);
+      // Promote preload if we're about to play this one.
+      if (existing && preload === 'auto' && existing.preload !== 'auto') {
+        existing.preload = 'auto';
+      }
+      return existing;
     }
 
-    const audio = new Audio(`/music/${musicKey}.mp3`);
+    const audio = new Audio();
+    audio.preload = preload;
+    audio.src = `/music/${musicKey}.mp3`;
     audio.loop = true;
-    audio.preload = 'auto';
     audio.volume = 0;
 
     // iOS Safari sometimes drops the loop attribute. If `ended` fires while
@@ -194,11 +288,12 @@ class MusicEngine {
     if (!audio) return;
 
     audio.volume = 0;
+    dbg('_fadeIn', { key: musicKey, readyState: audio.readyState, preload: audio.preload });
     const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {
-        // iOS gesture not yet honored, or file 404. Silent failure.
-      });
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise
+        .then(() => dbg('play OK', musicKey))
+        .catch((e) => dbg('play FAIL', musicKey, e.name, e.message));
     }
     this._rampVolume(audio, 0, this.volume, CROSSFADE_MS);
   }
@@ -221,11 +316,22 @@ class MusicEngine {
   }
 
   _rampVolume(audio, from, to, durationMs, onComplete) {
+    // Defensive: coerce NaN/out-of-range to safe values. A bad `this.volume`
+    // (e.g., NaN from a previously-bad input) would otherwise make the tick
+    // assignment throw IndexSizeError and leave the audio stuck silent.
+    const safeFrom = Number.isFinite(from) ? Math.max(0, Math.min(1, from)) : 0;
+    const safeTo = Number.isFinite(to) ? Math.max(0, Math.min(1, to)) : 0;
     const startTime = performance.now();
     const tick = (now) => {
       const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / durationMs);
-      audio.volume = from + (to - from) * t;
+      const t = Math.max(0, Math.min(1, elapsed / durationMs));
+      const next = safeFrom + (safeTo - safeFrom) * t;
+      const clamped = Math.max(0, Math.min(1, next));
+      try {
+        audio.volume = clamped;
+      } catch (e) {
+        dbg('volume set FAIL', { value: clamped, raw: next, from, to, t, audioVol: audio.volume, err: e.message });
+      }
       if (t < 1) {
         requestAnimationFrame(tick);
       } else if (onComplete) {
