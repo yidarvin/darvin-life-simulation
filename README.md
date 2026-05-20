@@ -55,6 +55,8 @@ Saves persist to `localStorage` under the key `lifeIsASimulation:v1`. The schema
 
 Made by [Darvinyi](https://darvinyi.com). Built with Claude Code.
 
+Music: Eric Skiff - Song Name - Resistor Anthems - Available at http://EricSkiff.com/music
+
 ## License
 
 MIT.

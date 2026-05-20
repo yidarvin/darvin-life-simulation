@@ -89,6 +89,17 @@ export function AboutModal({ open, onClose }) {
           onVolumeChange={handleMusicVolumeChange}
           onVolumeRelease={() => {}}
         />
+        <div className="text-[10px] text-phosphor-dim leading-snug mt-1">
+          Music: Eric Skiff - Song Name - Resistor Anthems - Available at{' '}
+          <a
+            href="http://EricSkiff.com/music"
+            target="_blank"
+            rel="noreferrer"
+            className="underline text-phosphor hover:text-phosphor-bright"
+          >
+            http://EricSkiff.com/music
+          </a>
+        </div>
       </div>
 
       <div className="border-t border-phosphor-faint pt-3 text-left text-[11px] text-phosphor-dim leading-snug">
