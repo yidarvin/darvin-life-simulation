@@ -36,10 +36,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Retry on every gesture — if the first play() silently rejected (iOS
+    // autoplay quirks, file not loaded yet), the next gesture recovers.
     const unlock = () => music.unlock();
-    document.addEventListener('click', unlock, { once: true });
-    document.addEventListener('touchstart', unlock, { once: true });
-    document.addEventListener('keydown', unlock, { once: true });
+    document.addEventListener('click', unlock);
+    document.addEventListener('touchstart', unlock);
+    document.addEventListener('keydown', unlock);
     return () => {
       document.removeEventListener('click', unlock);
       document.removeEventListener('touchstart', unlock);

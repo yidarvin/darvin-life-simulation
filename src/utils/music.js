@@ -42,13 +42,27 @@ class MusicEngine {
   }
 
   // iOS Safari blocks HTML5 Audio playback until a user gesture occurs.
+  // Idempotent and safe to call on every user gesture — if the first play()
+  // silently rejected, subsequent gestures retry.
   unlock() {
-    if (this.unlocked) return;
     this.unlocked = true;
+    if (this.muted) return;
+
+    // If we already have a current track, make sure it's actually playing.
+    if (this.currentMusicKey) {
+      const audio = this.audioByKey.get(this.currentMusicKey);
+      if (audio && (audio.paused || audio.ended)) {
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+      return;
+    }
+
+    // Otherwise start whatever phase was queued before unlock.
     if (this.pendingPhase) {
       const phase = this.pendingPhase;
       this.pendingPhase = null;
-      this.currentMusicKey = null;
+      this.lastPhaseChangeAt = 0;
       this.playPhase(phase);
     }
   }
@@ -90,17 +104,17 @@ class MusicEngine {
     if (!musicKey) return;
     if (musicKey === this.currentMusicKey) return;
 
+    if (!this.unlocked) {
+      this.pendingPhase = phase;
+      return;
+    }
+
     const now = Date.now();
     const sinceLast = now - this.lastPhaseChangeAt;
     if (sinceLast < MIN_PHASE_DURATION_MS && this.currentMusicKey) {
       return;
     }
     this.lastPhaseChangeAt = now;
-
-    if (!this.unlocked) {
-      this.pendingPhase = phase;
-      return;
-    }
 
     const oldKey = this.currentMusicKey;
     this.currentMusicKey = musicKey;
@@ -118,6 +132,15 @@ class MusicEngine {
     audio.loop = true;
     audio.preload = 'auto';
     audio.volume = 0;
+
+    // iOS Safari sometimes drops the loop attribute. If `ended` fires while
+    // this is still the active track, restart it manually.
+    audio.addEventListener('ended', () => {
+      if (this.currentMusicKey !== musicKey || this.muted) return;
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    });
 
     audio.addEventListener('error', () => {
       if (import.meta.env.DEV) {
