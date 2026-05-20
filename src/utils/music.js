@@ -41,29 +41,36 @@ class MusicEngine {
     }
   }
 
-  // iOS Safari blocks HTML5 Audio playback until a user gesture occurs.
-  // Idempotent and safe to call on every user gesture — if the first play()
-  // silently rejected, subsequent gestures retry.
+  // iOS Safari (and Chrome's autoplay policy) blocks HTML5 Audio playback
+  // until a user gesture occurs. Idempotent and safe to call on every gesture —
+  // resolves pendingPhase even when muted so a later unmute can start playback
+  // without needing another gesture.
   unlock() {
     this.unlocked = true;
-    if (this.muted) return;
 
-    // If we already have a current track, make sure it's actually playing.
-    if (this.currentMusicKey) {
-      const audio = this.audioByKey.get(this.currentMusicKey);
-      if (audio && (audio.paused || audio.ended)) {
-        const p = audio.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      }
-      return;
-    }
-
-    // Otherwise start whatever phase was queued before unlock.
-    if (this.pendingPhase) {
+    // Resolve any queued phase into currentMusicKey. playPhase internally
+    // skips _fadeIn if muted, but still sets currentMusicKey.
+    if (!this.currentMusicKey && this.pendingPhase) {
       const phase = this.pendingPhase;
       this.pendingPhase = null;
       this.lastPhaseChangeAt = 0;
       this.playPhase(phase);
+      return;
+    }
+
+    if (this.muted) return;
+
+    // If we have a current track, call play() unconditionally — Chrome's
+    // `paused` flag can lie after a previously-rejected play(), and play()
+    // on already-playing audio is a safe no-op.
+    if (this.currentMusicKey) {
+      const audio = this.audioByKey.get(this.currentMusicKey);
+      if (audio) {
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } else {
+        this._fadeIn(this.currentMusicKey);
+      }
     }
   }
 
@@ -72,9 +79,10 @@ class MusicEngine {
     this._saveSettings();
     if (this.muted) {
       this._stopAll();
-    } else if (this.currentMusicKey) {
-      this._fadeIn(this.currentMusicKey);
+      return;
     }
+    // Unmuting: start whatever should be playing.
+    this._ensurePlaying();
   }
 
   toggleMuted() {
@@ -85,9 +93,37 @@ class MusicEngine {
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v));
     this._saveSettings();
-    if (this.currentMusicKey && !this.muted) {
+    if (this.muted) return;
+    if (this.currentMusicKey) {
       const audio = this.audioByKey.get(this.currentMusicKey);
       if (audio) audio.volume = this.volume;
+    }
+    // Belt-and-suspenders: any volume interaction is a user gesture, so use it
+    // to start playback if the unlock path missed for some reason.
+    this._ensurePlaying();
+  }
+
+  // Start music if it should be playing but isn't. Called from setMuted(false)
+  // and setVolume(), which both happen inside user gestures and so can succeed
+  // even when the document-level unlock listener missed an earlier gesture.
+  _ensurePlaying() {
+    if (this.muted) return;
+    this.unlocked = true;
+    if (this.currentMusicKey) {
+      const audio = this.audioByKey.get(this.currentMusicKey);
+      if (audio) {
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } else {
+        this._fadeIn(this.currentMusicKey);
+      }
+      return;
+    }
+    if (this.pendingPhase) {
+      const phase = this.pendingPhase;
+      this.pendingPhase = null;
+      this.lastPhaseChangeAt = 0;
+      this.playPhase(phase);
     }
   }
 
